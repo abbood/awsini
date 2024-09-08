@@ -5,6 +5,7 @@ import 'dart:async';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/foundation.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -30,7 +31,6 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-
   final Color darkGray = Color(0xFF080808);
 
   @override
@@ -55,7 +55,7 @@ class _SplashScreenState extends State<SplashScreen> {
 }
 
 class WallpaperGallery extends StatelessWidget {
-  final List<String> wallpapers = [
+  final List<String> wallpapers = const [
     'assets/wallpaper1.png',
     'assets/wallpaper2.png',
     'assets/wallpaper3.png',
@@ -83,7 +83,8 @@ class WallpaperGallery extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => WallpaperDetailPage(wallpaperPath: wallpapers[index]),
+                  builder: (context) =>
+                      WallpaperDetailPage(wallpaperPath: wallpapers[index]),
                 ),
               );
             },
@@ -106,14 +107,23 @@ class WallpaperDetailPage extends StatelessWidget {
 
   WallpaperDetailPage({required this.wallpaperPath});
 
+  Future<void> _getAndroidVersion() async {
+    final deviceInfo = DeviceInfoPlugin();
+    final androidInfo = await deviceInfo.androidInfo;
+
+    print('Android version: ${androidInfo.version.release}');
+    print('SDK Int: ${androidInfo.version.sdkInt}');
+  }
+
   Future<void> _download(BuildContext context) async {
+    _getAndroidVersion();
     // First, check the permission status
-    var status = await Permission.storage.status;
+    var status = await Permission.photos.status;
     debugPrint('Initial permission status: $status');
     if (status.isDenied) {
       // If permission is denied, request it
       debugPrint('Permission is denied, requesting permission...');
-      status = await Permission.storage.request();
+      status = await Permission.photos.request();
       debugPrint('Permission request result: $status');
     }
 
@@ -128,7 +138,8 @@ class WallpaperDetailPage extends StatelessWidget {
         final byteData = await rootBundle.load(wallpaperPath);
 
         final file = File(savePath);
-        await file.writeAsBytes(byteData.buffer.asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
+        await file.writeAsBytes(byteData.buffer
+            .asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Wallpaper saved to: $savePath')),
@@ -148,11 +159,11 @@ class WallpaperDetailPage extends StatelessWidget {
       // Permission denied
       debugPrint('Permission is denied');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Storage permission is required to save wallpapers')),
+        SnackBar(
+            content: Text('Storage permission is required to save wallpapers')),
       );
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
