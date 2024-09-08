@@ -5,6 +5,8 @@ import 'dart:async';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter/foundation.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:path/path.dart' as path;
 import 'package:device_info_plus/device_info_plus.dart';
 
 void main() async {
@@ -117,30 +119,43 @@ class WallpaperDetailPage extends StatelessWidget {
 
   Future<void> _download(BuildContext context) async {
     _getAndroidVersion();
-    // First, check the permission status
-    var status = await Permission.photos.status;
-    debugPrint('Initial permission status: $status');
-    if (status.isDenied) {
-      // If permission is denied, request it
-      debugPrint('Permission is denied, requesting permission...');
-      status = await Permission.photos.request();
-      debugPrint('Permission request result: $status');
+    // Check both permissions
+    var photoStatus = await Permission.photos.status;
+    var storageStatus = await Permission.manageExternalStorage.status;
+    
+    debugPrint('Initial photo permission status: $photoStatus');
+    debugPrint('Initial storage permission status: $storageStatus');
+
+    if (photoStatus.isDenied) {
+      photoStatus = await Permission.photos.request();
+      debugPrint('Photo permission request result: $photoStatus');
+    }
+    
+    if (storageStatus.isDenied) {
+      storageStatus = await Permission.manageExternalStorage.request();
+      debugPrint('Storage permission request result: $storageStatus');
     }
 
-    if (status.isGranted) {
-      // Permission granted, proceed with download
-      debugPrint('Permission is granted, proceeding with download');
+    if (photoStatus.isGranted && storageStatus.isGranted) {
+      debugPrint('All permissions granted, proceeding with download');
       try {
-        final directory = await getExternalStorageDirectory();
+        String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+        
+        if (selectedDirectory == null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Directory selection canceled')),
+          );
+          return;
+        }
+
         final wallpaperName = wallpaperPath.split('/').last;
-        final savePath = '${directory!.path}/$wallpaperName';
-
+        final savePath = path.join(selectedDirectory, wallpaperName);
+        
         final byteData = await rootBundle.load(wallpaperPath);
-
         final file = File(savePath);
         await file.writeAsBytes(byteData.buffer
             .asUint8List(byteData.offsetInBytes, byteData.lengthInBytes));
-
+        
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Wallpaper saved to: $savePath')),
         );
@@ -149,18 +164,14 @@ class WallpaperDetailPage extends StatelessWidget {
           SnackBar(content: Text('Failed to save wallpaper: $e')),
         );
       }
-    } else if (status.isPermanentlyDenied) {
-      // The user opted to never again see the permission request dialog for this
-      // app. The only way to change the permission's status now is to let the
-      // user manually enable it in the system settings.
-      debugPrint('Permission is permanently denied');
+    } else if (photoStatus.isPermanentlyDenied || storageStatus.isPermanentlyDenied) {
+      debugPrint('One or more permissions are permanently denied');
       openAppSettings();
     } else {
-      // Permission denied
-      debugPrint('Permission is denied');
+      debugPrint('One or more permissions are denied');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text('Storage permission is required to save wallpapers')),
+            content: Text('Both photo and storage permissions are required to save wallpapers')),
       );
     }
   }
