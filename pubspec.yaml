@@ -21,13 +21,17 @@ dev_dependencies:
   device_info_plus: ^9.1.0
   file_picker: ^5.3.1
   path: ^1.8.3
+  flutter_svg: ^1.1.6
 
 flutter:
   uses-material-design: true
   assets:
     - assets/logo.png
+    - assets/wallpaper1.svg
     - assets/wallpaper1.png
+    - assets/wallpaper2.svg
     - assets/wallpaper2.png
+    - assets/wallpaper3.svg
     - assets/wallpaper3.png
+    - assets/wallpaper4.svg
     - assets/wallpaper4.png
-    - assets/wallpaper5.png
