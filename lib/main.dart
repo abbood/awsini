@@ -62,6 +62,7 @@ class WallpaperGallery extends StatelessWidget {
     'assets/wallpaper2.png',
     'assets/wallpaper3.png',
     'assets/wallpaper4.png',
+    'assets/wallpaper5.png',
   ];
 
   @override
@@ -117,6 +118,7 @@ class WallpaperDetailPage extends StatelessWidget {
     print('SDK Int: ${androidInfo.version.sdkInt}');
   }
 
+  //TODO: let user save file in downloads directory
   Future<void> _download(BuildContext context) async {
     _getAndroidVersion();
     // Check both permissions
