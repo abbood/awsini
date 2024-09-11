@@ -59,6 +59,7 @@ class WallpaperDetailPage extends StatelessWidget {
         final int width = (screenSize.width * pixelRatio).toInt();
         final int height = (screenSize.height * pixelRatio).toInt();
 
+
         // Create a custom paint for rendering
         final recorder = ui.PictureRecorder();
         final canvas = Canvas(recorder);
@@ -70,7 +71,7 @@ class WallpaperDetailPage extends StatelessWidget {
         // Load and draw SVG
         final svgDrawableRoot = await svg.fromSvgString(await DefaultAssetBundle.of(context).loadString(svgPath), svgPath);
         final svgSize = svgDrawableRoot.viewport.size;
-        final scale = (width - 20) / svgSize.width; // 10px padding on each side
+        final scale = (width - 200) / svgSize.width; // 10px padding on each side
         final matrix = Matrix4.identity()
           ..translate((width - svgSize.width * scale) / 2, (height - svgSize.height * scale) / 2)
           ..scale(scale);
