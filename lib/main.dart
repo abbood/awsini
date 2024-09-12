@@ -8,6 +8,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path/path.dart' as path;
 import 'package:device_info_plus/device_info_plus.dart';
 import 'widgets/wallpaper_detail_page.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,7 +34,7 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-  final Color darkGray = Color(0xFF080808);
+  final Color black = Color(0x000000);
 
   @override
   void initState() {
@@ -48,9 +49,13 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: darkGray,
+      backgroundColor: black,
       body: Center(
-        child: Image.asset('assets/logo.png'),
+        child: SvgPicture.asset(
+          'assets/logo.svg',
+          width: 400, // adjust as needed
+          height: 400, // adjust as needed
+        ),
       ),
     );
   }
@@ -85,11 +90,10 @@ class WallpaperGallery extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) =>
-                      WallpaperDetailPage(
-                        pngPath: wallpapers[index]['png']!,
-                        svgPath: wallpapers[index]['svg']!,
-                      ),
+                  builder: (context) => WallpaperDetailPage(
+                    pngPath: wallpapers[index]['png']!,
+                    svgPath: wallpapers[index]['svg']!,
+                  ),
                 ),
               );
             },
