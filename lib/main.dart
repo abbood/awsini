@@ -67,6 +67,7 @@ class WallpaperGallery extends StatelessWidget {
     {'png': 'assets/wallpaper2.png', 'svg': 'assets/wallpaper2.svg'},
     {'png': 'assets/wallpaper3.png', 'svg': 'assets/wallpaper3.svg'},
     {'png': 'assets/wallpaper4.png', 'svg': 'assets/wallpaper4.svg'},
+    {'png': 'assets/wallpaper5.png', 'svg': 'assets/wallpaper5.svg'},
   ];
 
   @override
