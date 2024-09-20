@@ -23,40 +23,7 @@ class WallpaperMarketplaceApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: SplashScreen(),
-    );
-  }
-}
-
-class SplashScreen extends StatefulWidget {
-  @override
-  _SplashScreenState createState() => _SplashScreenState();
-}
-
-class _SplashScreenState extends State<SplashScreen> {
-  final Color black = Color(0x000000);
-
-  @override
-  void initState() {
-    super.initState();
-    Timer(Duration(seconds: 3), () {
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (context) => WallpaperGallery()),
-      );
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: black,
-      body: Center(
-        child: SvgPicture.asset(
-          'assets/logo.svg',
-          width: 400, // adjust as needed
-          height: 400, // adjust as needed
-        ),
-      ),
+      home: WallpaperGallery(),
     );
   }
 }

@@ -23,6 +23,7 @@ dev_dependencies:
   path: ^1.8.3
   flutter_svg: ^1.1.6
   flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.3.1
 
 flutter:
   uses-material-design: true
@@ -47,3 +48,5 @@ flutter:
     - assets/wallpaper8.png
     - assets/wallpaper9.svg
     - assets/wallpaper9.png
+    - assets/splash.png
+    - assets/splash_android12.png
