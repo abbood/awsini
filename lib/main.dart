@@ -30,15 +30,14 @@ class WallpaperMarketplaceApp extends StatelessWidget {
 
 class WallpaperGallery extends StatelessWidget {
   final List<Map<String, String>> wallpapers = const [
-    {'png': 'assets/wallpaper1.png', 'svg': 'assets/wallpaper1.svg'},
-    {'png': 'assets/wallpaper2.png', 'svg': 'assets/wallpaper2.svg'},
-    {'png': 'assets/wallpaper3.png', 'svg': 'assets/wallpaper3.svg'},
-    {'png': 'assets/wallpaper4.png', 'svg': 'assets/wallpaper4.svg'},
-    {'png': 'assets/wallpaper5.png', 'svg': 'assets/wallpaper5.svg'},
-    {'png': 'assets/wallpaper6.png', 'svg': 'assets/wallpaper6.svg'},
-    {'png': 'assets/wallpaper7.png', 'svg': 'assets/wallpaper7.svg'},
-    {'png': 'assets/wallpaper8.png', 'svg': 'assets/wallpaper8.svg'},
-    {'png': 'assets/wallpaper9.png', 'svg': 'assets/wallpaper9.svg'},
+    {'png': 'assets/wallpaper1.png', 'svg': 'assets/wallpaper1.svg','detail': 'assets/wallpaper1_detail.png','translation':"Didn't he know that Allah sees"},
+    {'png': 'assets/wallpaper2.png', 'svg': 'assets/wallpaper2.svg','detail': 'assets/wallpaper2_detail.png','translation':"Work; and God will surely see your work"},
+    {'png': 'assets/wallpaper3.png', 'svg': 'assets/wallpaper3.svg','detail': 'assets/wallpaper3_detail.png','translation':"Despair not of the mercy of Allah"},
+    {'png': 'assets/wallpaper4.png', 'svg': 'assets/wallpaper4.svg','detail': 'assets/wallpaper4_detail.png','translation':"Say to the believers they should lower their gaze"},
+    {'png': 'assets/wallpaper5.png', 'svg': 'assets/wallpaper5.svg','detail': 'assets/wallpaper5_detail.png','translation':"Persevere and endure and remain stationed"},
+    {'png': 'assets/wallpaper6.png', 'svg': 'assets/wallpaper6.svg','detail': 'assets/wallpaper6_detail.png','translation':"Grant me the power and ability that I may be grateful for Your favors which You have bestowed on me and on my parents"},
+    {'png': 'assets/wallpaper7.png', 'svg': 'assets/wallpaper7.svg','detail': 'assets/wallpaper7_detail.png','translation':"Indeed the promise of Allah is truth"},
+    {'png': 'assets/wallpaper8.png', 'svg': 'assets/wallpaper8.svg','detail': 'assets/wallpaper8_detail.png','translation':"Life is but an hour, fill it with obedience"},
   ];
 
   @override
@@ -65,6 +64,8 @@ class WallpaperGallery extends StatelessWidget {
                   builder: (context) => WallpaperDetailPage(
                     pngPath: wallpapers[index]['png']!,
                     svgPath: wallpapers[index]['svg']!,
+                    detailPath: wallpapers[index]['detail']!,
+                    translationText: wallpapers[index]['translation']!,
                   ),
                 ),
               );

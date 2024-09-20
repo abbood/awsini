@@ -8,11 +8,24 @@ import 'package:device_info_plus/device_info_plus.dart';
 import 'package:path/path.dart' as path;
 import 'dart:io';
 
-class WallpaperDetailPage extends StatelessWidget {
+class WallpaperDetailPage extends StatefulWidget {
   final String pngPath;
   final String svgPath;
+  final String detailPath;
+  final String translationText;
 
-  WallpaperDetailPage({required this.pngPath, required this.svgPath});
+  WallpaperDetailPage(
+      {required this.pngPath,
+      required this.svgPath,
+      required this.detailPath,
+      required this.translationText});
+
+  @override
+  _WallpaperDetailPageState createState() => _WallpaperDetailPageState();
+}
+
+class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
+  bool _addTranslation = false;
 
   Future<void> _getAndroidVersion() async {
     final deviceInfo = DeviceInfoPlugin();
@@ -22,7 +35,6 @@ class WallpaperDetailPage extends StatelessWidget {
     print('SDK Int: ${androidInfo.version.sdkInt}');
   }
 
-  //TODO: let user save file in downloads directory
   Future<void> _download(BuildContext context) async {
     _getAndroidVersion();
     // Check both permissions
@@ -33,19 +45,25 @@ class WallpaperDetailPage extends StatelessWidget {
     debugPrint('Initial storage permission status: $storageStatus');
 
     if (photoStatus.isDenied) {
-      photoStatus = await Permission.photos.request();
-      debugPrint('Photo permission request result: $photoStatus');
+      if (Platform.isAndroid) {
+        photoStatus = await Permission.photos.request();
+        debugPrint('Android Photo permission request result: $photoStatus');
+      } else if (Platform.isIOS) {
+        photoStatus = await Permission.photosAddOnly.request();
+        debugPrint('iOS Photo permission request result: $photoStatus');
+      }
     }
 
-    if (storageStatus.isDenied) {
+    if (Platform.isAndroid && storageStatus.isDenied) {
       storageStatus = await Permission.manageExternalStorage.request();
-      debugPrint('Storage permission request result: $storageStatus');
+      debugPrint('Android Storage permission request result: $storageStatus');
     }
 
     if (photoStatus.isGranted && storageStatus.isGranted) {
       debugPrint('All permissions granted, proceeding with download');
       try {
-        String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
+        String? selectedDirectory =
+            await FilePicker.platform.getDirectoryPath();
         if (selectedDirectory == null) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Directory selection canceled')),
@@ -59,24 +77,46 @@ class WallpaperDetailPage extends StatelessWidget {
         final int width = (screenSize.width * pixelRatio).toInt();
         final int height = (screenSize.height * pixelRatio).toInt();
 
-
         // Create a custom paint for rendering
         final recorder = ui.PictureRecorder();
         final canvas = Canvas(recorder);
 
         // Draw black background
         final paint = Paint()..color = Colors.black;
-        canvas.drawRect(Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()), paint);
+        canvas.drawRect(
+            Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()), paint);
 
         // Load and draw SVG
-        final svgDrawableRoot = await svg.fromSvgString(await DefaultAssetBundle.of(context).loadString(svgPath), svgPath);
+        final svgDrawableRoot = await svg.fromSvgString(
+            await DefaultAssetBundle.of(context).loadString(widget.svgPath),
+            widget.svgPath);
         final svgSize = svgDrawableRoot.viewport.size;
-        final scale = (width - 200) / svgSize.width; // 10px padding on each side
+        final scale =
+            (width - 200) / svgSize.width; // 10px padding on each side
+        final scaledSvgHeight = svgSize.height * scale;
         final matrix = Matrix4.identity()
-          ..translate((width - svgSize.width * scale) / 2, (height - svgSize.height * scale) / 2)
+          ..translate((width - svgSize.width * scale) / 2,
+              (height - scaledSvgHeight) / 2)
           ..scale(scale);
         canvas.transform(matrix.storage);
-        svgDrawableRoot.draw(canvas, Rect.fromLTWH(0, 0, svgSize.width, svgSize.height));
+        svgDrawableRoot.draw(
+            canvas, Rect.fromLTWH(0, 0, svgSize.width, svgSize.height));
+
+        // Add translation text if checkbox is checked
+        if (_addTranslation) {
+          final textPainter = TextPainter(
+            text: TextSpan(
+              text: widget.translationText,
+              style: TextStyle(color: Colors.grey, fontSize: 50),
+            ),
+            textDirection: TextDirection.ltr,
+          );
+          textPainter.layout(maxWidth: width.toDouble());
+          final textY =
+              (height + scaledSvgHeight) / 2 + 20; // 20 pixels below the SVG
+          textPainter.paint(
+              canvas, Offset(((width - textPainter.width) / 2) + 30, textY));
+        }
 
         // Convert to image
         final picture = recorder.endRecording();
@@ -84,7 +124,8 @@ class WallpaperDetailPage extends StatelessWidget {
         final pngBytes = await img.toByteData(format: ui.ImageByteFormat.png);
 
         // Save the image
-        final wallpaperName = 'wallpaper_${DateTime.now().millisecondsSinceEpoch}.png';
+        final wallpaperName =
+            'wallpaper_${DateTime.now().millisecondsSinceEpoch}.png';
         final savePath = path.join(selectedDirectory, wallpaperName);
         final file = File(savePath);
         await file.writeAsBytes(pngBytes!.buffer.asUint8List());
@@ -97,10 +138,7 @@ class WallpaperDetailPage extends StatelessWidget {
           SnackBar(content: Text('Failed to save wallpaper: $e')),
         );
       }
-    } else if (photoStatus.isPermanentlyDenied || storageStatus.isPermanentlyDenied) {
-      debugPrint('One or more permissions are permanently denied');
-      openAppSettings();
-    }  else if (photoStatus.isPermanentlyDenied ||
+    } else if (photoStatus.isPermanentlyDenied ||
         storageStatus.isPermanentlyDenied) {
       debugPrint('One or more permissions are permanently denied');
       openAppSettings();
@@ -120,10 +158,46 @@ class WallpaperDetailPage extends StatelessWidget {
       appBar: AppBar(
         title: Text('Wallpaper Detail'),
       ),
-      body: Center(
-        child: Image.asset(
-          pngPath,
-          fit: BoxFit.contain,
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Image.asset(
+              widget.detailPath,
+              fit: BoxFit.contain,
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16.0),
+              child: Text(
+                widget.translationText,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.grey,
+                  fontSize: 16,
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Add translation (Beta)',
+                    style: TextStyle(fontSize: 16),
+                  ),
+                  Checkbox(
+                    value: _addTranslation,
+                    onChanged: (bool? value) {
+                      setState(() {
+                        _addTranslation = value ?? false;
+                      });
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
