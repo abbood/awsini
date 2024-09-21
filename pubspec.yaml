@@ -30,23 +30,38 @@ flutter:
   assets:
     - assets/logo.svg
     - assets/icons/
+
     - assets/wallpaper1.svg
     - assets/wallpaper1.png
+    - assets/wallpaper1_detail.png
+
     - assets/wallpaper2.svg
     - assets/wallpaper2.png
+    - assets/wallpaper2_detail.png
+
     - assets/wallpaper3.svg
     - assets/wallpaper3.png
+    - assets/wallpaper3_detail.png
+
     - assets/wallpaper4.svg
     - assets/wallpaper4.png
+    - assets/wallpaper4_detail.png
+
     - assets/wallpaper5.svg
     - assets/wallpaper5.png
+    - assets/wallpaper5_detail.png
+
     - assets/wallpaper6.svg
     - assets/wallpaper6.png
+    - assets/wallpaper6_detail.png
+
     - assets/wallpaper7.svg
     - assets/wallpaper7.png
+    - assets/wallpaper7_detail.png
+
     - assets/wallpaper8.svg
     - assets/wallpaper8.png
-    - assets/wallpaper9.svg
-    - assets/wallpaper9.png
+    - assets/wallpaper8_detail.png
+
     - assets/splash.png
     - assets/splash_android12.png
