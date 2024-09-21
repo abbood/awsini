@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:awsini/helpers/permission_helper.dart';
 import 'package:path/path.dart' as path;
 import 'dart:io';
 
@@ -59,7 +60,8 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
       debugPrint('Android Storage permission request result: $storageStatus');
     }
 
-    if (photoStatus.isGranted && storageStatus.isGranted) {
+    if (PermissionHelper.areRequiredPermissionsGranted(
+        photoStatus, storageStatus)) {
       debugPrint('All permissions granted, proceeding with download');
       try {
         String? selectedDirectory =
