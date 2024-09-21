@@ -7,6 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:awsini/helpers/permission_helper.dart';
 import 'package:path/path.dart' as path;
+import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'dart:io';
 
 class WallpaperDetailPage extends StatefulWidget {
@@ -64,15 +65,6 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
         photoStatus, storageStatus)) {
       debugPrint('All permissions granted, proceeding with download');
       try {
-        String? selectedDirectory =
-            await FilePicker.platform.getDirectoryPath();
-        if (selectedDirectory == null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Directory selection canceled')),
-          );
-          return;
-        }
-
         // Get screen size
         final Size screenSize = MediaQuery.of(context).size;
         final double pixelRatio = MediaQuery.of(context).devicePixelRatio;
@@ -123,17 +115,10 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
         // Convert to image
         final picture = recorder.endRecording();
         final img = await picture.toImage(width, height);
-        final pngBytes = await img.toByteData(format: ui.ImageByteFormat.png);
-
-        // Save the image
-        final wallpaperName =
-            'wallpaper_${DateTime.now().millisecondsSinceEpoch}.png';
-        final savePath = path.join(selectedDirectory, wallpaperName);
-        final file = File(savePath);
-        await file.writeAsBytes(pngBytes!.buffer.asUint8List());
+        await _saveImageToGallery(img);
 
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Wallpaper saved to: $savePath')),
+          SnackBar(content: Text('Wallpaper saved in image gallery')),
         );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -153,6 +138,25 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
       );
     }
   }
+
+  Future<void> _saveImageToGallery(ui.Image img) async {
+    final pngBytes = await img.toByteData(format: ui.ImageByteFormat.png);
+    if (pngBytes != null) {
+      final result = await ImageGallerySaver.saveImage(
+        pngBytes.buffer.asUint8List(),
+        quality: 100,
+        name: 'wallpaper_${DateTime.now().millisecondsSinceEpoch}.png',
+      );
+      
+      if (result['isSuccess']) {
+        print('Image saved to gallery successfully');
+      } else {
+        print('Failed to save image to gallery');
+      }
+    } else {
+      print('Failed to convert image to PNG');
+    }
+}
 
   @override
   Widget build(BuildContext context) {
