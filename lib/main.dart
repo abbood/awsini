@@ -24,6 +24,7 @@ class WallpaperMarketplaceApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       home: WallpaperGallery(),
+      debugShowCheckedModeBanner: false,
     );
   }
 }
