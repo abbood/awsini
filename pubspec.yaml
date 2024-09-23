@@ -64,5 +64,9 @@ flutter:
     - assets/wallpaper8.png
     - assets/wallpaper8_detail.png
 
+    - assets/wallpaper9.svg
+    - assets/wallpaper9.png
+    - assets/wallpaper9_detail.png
+
     - assets/splash.png
     - assets/splash_android12.png

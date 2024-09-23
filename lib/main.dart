@@ -39,6 +39,7 @@ class WallpaperGallery extends StatelessWidget {
     {'png': 'assets/wallpaper6.png', 'svg': 'assets/wallpaper6.svg','detail': 'assets/wallpaper6_detail.png','translation':"Grant me the power and ability that I may be grateful for Your favors which You have bestowed on me and on my parents"},
     {'png': 'assets/wallpaper7.png', 'svg': 'assets/wallpaper7.svg','detail': 'assets/wallpaper7_detail.png','translation':"Indeed the promise of Allah is truth"},
     {'png': 'assets/wallpaper8.png', 'svg': 'assets/wallpaper8.svg','detail': 'assets/wallpaper8_detail.png','translation':"Life is but an hour, fill it with obedience"},
+    {'png': 'assets/wallpaper9.png', 'svg': 'assets/wallpaper9.svg','detail': 'assets/wallpaper9_detail.png','translation':"A few morsels that keep his back upright are sufficient for him"},
   ];
 
   @override
