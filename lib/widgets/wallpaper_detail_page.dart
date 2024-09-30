@@ -14,12 +14,16 @@ class WallpaperDetailPage extends StatefulWidget {
   final String svgUrl;
   final String detailUrl;
   final String translationText;
+  final String arabicText;
+  List<String> tags;
 
   WallpaperDetailPage({
     required this.pngUrl,
     required this.svgUrl,
     required this.detailUrl,
     required this.translationText,
+    required this.arabicText,
+    required this.tags,
   });
 
   @override
@@ -144,7 +148,6 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to save wallpaper: $e')),
         );
-
       } finally {
         setState(() {
           _isDownloading = false;
@@ -187,13 +190,13 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-          leading: IconButton(
+        leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(''), // Empty title
         backgroundColor: Colors.transparent, // Make AppBar transparent
-        elevation: 0, // Remove shadow      
+        elevation: 0, // Remove shadow
       ),
       body: Column(
         children: [
@@ -218,8 +221,45 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
                       );
                     },
                   ),
+                  // Add tags here
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Center(
+                      child: Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 8.0, // space between tags
+                        runSpacing: 4.0, // space between lines
+                        children: widget.tags
+                            .map((tag) => Chip(
+                                  label: Text(
+                                    tag,
+                                    style: TextStyle(
+                                        fontSize: 12, color: Colors.white),
+                                  ),
+                                  backgroundColor:
+                                      Colors.black.withOpacity(0.7),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 0),
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ))
+                            .toList(),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: Text(
+                      widget.arabicText,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                     child: Text(
                       widget.translationText,
                       textAlign: TextAlign.center,
@@ -258,27 +298,27 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
             child: ElevatedButton(
               onPressed: _isDownloading ? null : () => _download(context),
               child: _isDownloading
-                ? SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                      strokeWidth: 2,
-                    ),
-                  )
-                : Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.download, size: 24),
-                      SizedBox(width: 8), // Add some space between the icon and text
-                      Text(
-                        'Download Wallpaper',
-                        style: TextStyle(
-                          fontSize: 16,
-                        ),
+                  ? SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        strokeWidth: 2,
                       ),
-                    ],
-                  ),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.download, size: 24),
+                        SizedBox(width: 8),
+                        Text(
+                          'Download Wallpaper',
+                          style: TextStyle(
+                            fontSize: 16,
+                          ),
+                        ),
+                      ],
+                    ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
                 foregroundColor: Colors.white,

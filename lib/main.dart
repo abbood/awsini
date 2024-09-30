@@ -6,7 +6,6 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skeletonizer/skeletonizer.dart';
-import 'dart:math';
 
 import 'firebase_options.dart';
 import 'widgets/wallpaper_detail_page.dart';
@@ -109,6 +108,7 @@ class _WallpaperGalleryState extends State<WallpaperGallery> {
           'vector_file': vectorUrl,
           'detail_file': detailUrl,
           'translation': data['translation'] ?? '',
+          'ar': data['ar'] ?? '',
           'tags': data['tags'] ?? '',
         });
       }
@@ -156,8 +156,7 @@ class _WallpaperGalleryState extends State<WallpaperGallery> {
                 ),
                 itemCount: wallpapers.length,
                 itemBuilder: (context, index) {
-
-                List<String> tags = [];
+                  List<String> tags = [];
                   if (wallpapers[index]['tags'] != null) {
                     tags = (wallpapers[index]['tags'] as String)
                         .split(',')
@@ -172,11 +171,12 @@ class _WallpaperGalleryState extends State<WallpaperGallery> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => WallpaperDetailPage(
-                            pngUrl: wallpapers[index]['thumbnail_file'],
-                            svgUrl: wallpapers[index]['vector_file'],
-                            detailUrl: wallpapers[index]['detail_file'],
-                            translationText: wallpapers[index]['translation'],
-                          ),
+                              pngUrl: wallpapers[index]['thumbnail_file'],
+                              svgUrl: wallpapers[index]['vector_file'],
+                              detailUrl: wallpapers[index]['detail_file'],
+                              translationText: wallpapers[index]['translation'],
+                              arabicText: wallpapers[index]['ar'],
+                              tags: tags),
                         ),
                       );
                     },
@@ -189,7 +189,8 @@ class _WallpaperGalleryState extends State<WallpaperGallery> {
                             child: CachedNetworkImage(
                               imageUrl: wallpapers[index]['thumbnail_file'],
                               fit: BoxFit.cover,
-                              errorWidget: (context, url, error) => Icon(Icons.error),
+                              errorWidget: (context, url, error) =>
+                                  Icon(Icons.error),
                             ),
                           ),
                         ),
@@ -198,18 +199,25 @@ class _WallpaperGalleryState extends State<WallpaperGallery> {
                           right: 8,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
-                            children: tags.map((tag) => Padding(
-                              padding: EdgeInsets.only(bottom: 4),
-                              child: Chip(
-                                label: Text(
-                                  tag,
-                                  style: TextStyle(fontSize: 10, color: Colors.white),
-                                ),
-                                backgroundColor: Colors.black.withOpacity(0.7),
-                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                            )).toList(),
+                            children: tags
+                                .map((tag) => Padding(
+                                      padding: EdgeInsets.only(bottom: 4),
+                                      child: Chip(
+                                        label: Text(
+                                          tag,
+                                          style: TextStyle(
+                                              fontSize: 10,
+                                              color: Colors.white),
+                                        ),
+                                        backgroundColor:
+                                            Colors.black.withOpacity(0.7),
+                                        padding: EdgeInsets.symmetric(
+                                            horizontal: 8, vertical: 0),
+                                        materialTapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                    ))
+                                .toList(),
                           ),
                         ),
                       ],
@@ -238,5 +246,4 @@ class _WallpaperGalleryState extends State<WallpaperGallery> {
       ),
     );
   }
-
 }
