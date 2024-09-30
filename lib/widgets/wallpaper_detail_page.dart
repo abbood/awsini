@@ -258,20 +258,27 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
             child: ElevatedButton(
               onPressed: _isDownloading ? null : () => _download(context),
               child: _isDownloading
-                  ? SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : Text(
-                      'Download Wallpaper',
-                      style: TextStyle(
-                        fontSize: 16,
-                      ),
+                ? SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      strokeWidth: 2,
                     ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.download, size: 24),
+                      SizedBox(width: 8), // Add some space between the icon and text
+                      Text(
+                        'Download Wallpaper',
+                        style: TextStyle(
+                          fontSize: 16,
+                        ),
+                      ),
+                    ],
+                  ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
                 foregroundColor: Colors.white,

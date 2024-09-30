@@ -6,6 +6,7 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:skeletonizer/skeletonizer.dart';
+import 'dart:math';
 
 import 'firebase_options.dart';
 import 'widgets/wallpaper_detail_page.dart';
@@ -136,71 +137,109 @@ class _WallpaperGalleryState extends State<WallpaperGallery> {
     }
   }
 
+  List<String> _generateRandomChips() {
+    List<String> possibleContents = [
+      'New',
+      'Hot',
+      'Trending',
+      'Popular',
+      'Featured'
+    ];
+    possibleContents.shuffle();
+    return possibleContents.take(Random().nextInt(2) + 1).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: SafeArea(
-          child: Stack(
-        children: [
-          Skeletonizer(
-            enabled: isLoading,
-            child: GridView.builder(
-              padding: EdgeInsets.all(8),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 9 / 16,
-              ),
-              itemCount: wallpapers.length,
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => WallpaperDetailPage(
-                          pngUrl: wallpapers[index]['thumbnail_file'],
-                          svgUrl: wallpapers[index]['vector_file'],
-                          detailUrl: wallpapers[index]['detail_file'],
-                          translationText: wallpapers[index]['translation'],
+        child: Stack(
+          children: [
+            Skeletonizer(
+              enabled: isLoading,
+              child: GridView.builder(
+                padding: EdgeInsets.all(8),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: 9 / 16,
+                ),
+                itemCount: wallpapers.length,
+                itemBuilder: (context, index) {
+                  List<String> chipContents = _generateRandomChips();
+                  
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => WallpaperDetailPage(
+                            pngUrl: wallpapers[index]['thumbnail_file'],
+                            svgUrl: wallpapers[index]['vector_file'],
+                            detailUrl: wallpapers[index]['detail_file'],
+                            translationText: wallpapers[index]['translation'],
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Skeleton.replace(
-                      width: 48,
-                      height: 48,
-                      child: CachedNetworkImage(
-                        imageUrl: wallpapers[index]['thumbnail_file'],
-                        fit: BoxFit.cover,
-                        errorWidget: (context, url, error) => Icon(Icons.error),
-                      ),
+                      );
+                    },
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Skeleton.replace(
+                            child: CachedNetworkImage(
+                              imageUrl: wallpapers[index]['thumbnail_file'],
+                              fit: BoxFit.cover,
+                              errorWidget: (context, url, error) => Icon(Icons.error),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: chipContents.map((content) => Padding(
+                              padding: EdgeInsets.only(bottom: 4),
+                              child: Chip(
+                                label: Text(
+                                  content,
+                                  style: TextStyle(fontSize: 10, color: Colors.white),
+                                ),
+                                backgroundColor: Colors.black.withOpacity(0.7),
+                                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              ),
+                            )).toList(),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                );
-              },
-            ),
-          ),
-          if (isLoading)
-            Center(
-              child: Container(
-                padding: EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.7),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  'Fetching your wallpapers,\nthis will take a few seconds...',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white, fontSize: 16),
-                ),
+                  );
+                },
               ),
             ),
-        ],
-      )),
+            if (isLoading)
+              Center(
+                child: Container(
+                  padding: EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    'Fetching your wallpapers,\nthis will take a few seconds...',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white, fontSize: 16),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
+
 }
