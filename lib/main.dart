@@ -109,6 +109,7 @@ class _WallpaperGalleryState extends State<WallpaperGallery> {
           'vector_file': vectorUrl,
           'detail_file': detailUrl,
           'translation': data['translation'] ?? '',
+          'tags': data['tags'] ?? '',
         });
       }
 
@@ -137,18 +138,6 @@ class _WallpaperGalleryState extends State<WallpaperGallery> {
     }
   }
 
-  List<String> _generateRandomChips() {
-    List<String> possibleContents = [
-      'New',
-      'Hot',
-      'Trending',
-      'Popular',
-      'Featured'
-    ];
-    possibleContents.shuffle();
-    return possibleContents.take(Random().nextInt(2) + 1).toList();
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -167,8 +156,16 @@ class _WallpaperGalleryState extends State<WallpaperGallery> {
                 ),
                 itemCount: wallpapers.length,
                 itemBuilder: (context, index) {
-                  List<String> chipContents = _generateRandomChips();
-                  
+
+                List<String> tags = [];
+                  if (wallpapers[index]['tags'] != null) {
+                    tags = (wallpapers[index]['tags'] as String)
+                        .split(',')
+                        .map((tag) => tag.trim())
+                        .where((tag) => tag.isNotEmpty)
+                        .toList();
+                  }
+
                   return GestureDetector(
                     onTap: () {
                       Navigator.push(
@@ -201,11 +198,11 @@ class _WallpaperGalleryState extends State<WallpaperGallery> {
                           right: 8,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
-                            children: chipContents.map((content) => Padding(
+                            children: tags.map((tag) => Padding(
                               padding: EdgeInsets.only(bottom: 4),
                               child: Chip(
                                 label: Text(
-                                  content,
+                                  tag,
                                   style: TextStyle(fontSize: 10, color: Colors.white),
                                 ),
                                 backgroundColor: Colors.black.withOpacity(0.7),
