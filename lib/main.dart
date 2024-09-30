@@ -1,17 +1,28 @@
+import 'package:awsini/services/cached_url_fetcher.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'firebase_options.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'dart:io';
-import 'dart:async';
-import 'package:path_provider/path_provider.dart';
-import 'package:flutter/foundation.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:path/path.dart' as path;
-import 'package:device_info_plus/device_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'widgets/wallpaper_detail_page.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 void main() async {
+  print("Starting app initialization");
   WidgetsFlutterBinding.ensureInitialized();
+  print("Flutter binding initialized");
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print("Firebase initialized successfully");
+  } catch (e) {
+    print("Error initializing Firebase: $e");
+  }
+  await CachedUrlFetcher.loadCache();
+  print("Running app");
   runApp(WallpaperMarketplaceApp());
 }
 
@@ -29,18 +40,90 @@ class WallpaperMarketplaceApp extends StatelessWidget {
   }
 }
 
-class WallpaperGallery extends StatelessWidget {
-  final List<Map<String, String>> wallpapers = const [
-    {'png': 'assets/wallpaper1.png', 'svg': 'assets/wallpaper1.svg','detail': 'assets/wallpaper1_detail.png','translation':"Didn't he know that Allah sees"},
-    {'png': 'assets/wallpaper2.png', 'svg': 'assets/wallpaper2.svg','detail': 'assets/wallpaper2_detail.png','translation':"Work; and God will surely see your work"},
-    {'png': 'assets/wallpaper3.png', 'svg': 'assets/wallpaper3.svg','detail': 'assets/wallpaper3_detail.png','translation':"Despair not of the mercy of Allah"},
-    {'png': 'assets/wallpaper4.png', 'svg': 'assets/wallpaper4.svg','detail': 'assets/wallpaper4_detail.png','translation':"Say to the believers they should lower their gaze"},
-    {'png': 'assets/wallpaper5.png', 'svg': 'assets/wallpaper5.svg','detail': 'assets/wallpaper5_detail.png','translation':"Persevere and endure and remain stationed"},
-    {'png': 'assets/wallpaper6.png', 'svg': 'assets/wallpaper6.svg','detail': 'assets/wallpaper6_detail.png','translation':"Grant me the power and ability that I may be grateful for Your favors which You have bestowed on me and on my parents"},
-    {'png': 'assets/wallpaper7.png', 'svg': 'assets/wallpaper7.svg','detail': 'assets/wallpaper7_detail.png','translation':"Indeed the promise of Allah is truth"},
-    {'png': 'assets/wallpaper8.png', 'svg': 'assets/wallpaper8.svg','detail': 'assets/wallpaper8_detail.png','translation':"Life is but an hour, fill it with obedience"},
-    {'png': 'assets/wallpaper9.png', 'svg': 'assets/wallpaper9.svg','detail': 'assets/wallpaper9_detail.png','translation':"A few morsels that keep his back upright are sufficient for him"},
-  ];
+class WallpaperGallery extends StatefulWidget {
+  @override
+  _WallpaperGalleryState createState() => _WallpaperGalleryState();
+}
+
+class _WallpaperGalleryState extends State<WallpaperGallery> {
+  List<Map<String, dynamic>> wallpapers = [];
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    fetchWallpapers();
+  }
+
+  Future<void> fetchWallpapers() async {
+    try {
+      final FirebaseFirestore firestore = FirebaseFirestore.instance;
+      final QuerySnapshot snapshot =
+          await firestore.collection('wallpapers').get();
+
+      // Check if data is newer than our last fetch
+      final prefs = await SharedPreferences.getInstance();
+      final lastFetch = prefs.getInt('last_wallpaper_fetch') ?? 0;
+
+      int newestTimestamp = lastFetch;
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        final timestamp = data['timestamp'];
+        if (timestamp is int && timestamp > newestTimestamp) {
+          newestTimestamp = timestamp;
+        }
+      }
+
+      if (newestTimestamp > lastFetch) {
+        // New data available, clear cache
+        await CachedUrlFetcher.clearCache();
+        await prefs.setInt('last_wallpaper_fetch', newestTimestamp);
+      }
+
+      List<Map<String, dynamic>> fetchedWallpapers = [];
+
+      for (var doc in snapshot.docs) {
+        final data = doc.data() as Map<String, dynamic>;
+        String thumbnailUrl =
+            await CachedUrlFetcher.getImageUrl(data['thumbnail_file'] ?? '');
+        String vectorUrl =
+            await CachedUrlFetcher.getImageUrl(data['vector_file'] ?? '');
+        String detailUrl =
+            await CachedUrlFetcher.getImageUrl(data['detail_file'] ?? '');
+
+        fetchedWallpapers.add({
+          'id': data['id'] ?? '',
+          'thumbnail_file': thumbnailUrl,
+          'vector_file': vectorUrl,
+          'detail_file': detailUrl,
+          'translation': data['translation'] ?? '',
+        });
+      }
+
+      setState(() {
+        wallpapers = fetchedWallpapers;
+        isLoading = false;
+      });
+    } catch (e) {
+      print('Error fetching wallpapers: $e');
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
+
+  Future<String> getImageUrl(String imagePath) async {
+    try {
+      final ref = FirebaseStorage.instance.ref().child('$imagePath');
+      print('Attempting to fetch URL for: $imagePath');
+      String downloadURL = await ref.getDownloadURL();
+      print('Successfully fetched URL: $downloadURL');
+      return downloadURL;
+    } catch (e) {
+      print('Error fetching image URL for $imagePath: $e');
+      return ''; // Return an empty string or a placeholder image URL
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,40 +131,47 @@ class WallpaperGallery extends StatelessWidget {
       appBar: AppBar(
         title: Text('Wallpaper Gallery'),
       ),
-      body: GridView.builder(
-        padding: EdgeInsets.all(8),
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
-          childAspectRatio: 9 / 16,
-        ),
-        itemCount: wallpapers.length,
-        itemBuilder: (context, index) {
-          return GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => WallpaperDetailPage(
-                    pngPath: wallpapers[index]['png']!,
-                    svgPath: wallpapers[index]['svg']!,
-                    detailPath: wallpapers[index]['detail']!,
-                    translationText: wallpapers[index]['translation']!,
-                  ),
-                ),
-              );
-            },
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.asset(
-                wallpapers[index]['png']!,
-                fit: BoxFit.cover,
+      body: isLoading
+          ? Center(child: CircularProgressIndicator())
+          : GridView.builder(
+              padding: EdgeInsets.all(8),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 10,
+                mainAxisSpacing: 10,
+                childAspectRatio: 9 / 16,
               ),
+              itemCount: wallpapers.length,
+              itemBuilder: (context, index) {
+                return GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => WallpaperDetailPage(
+                          pngUrl: wallpapers[index]['thumbnail_file'],
+                          svgUrl: wallpapers[index]['vector_file'],
+                          detailUrl: wallpapers[index]['detail_file'],
+                          translationText: wallpapers[index]['translation'],
+                        ),
+                      ),
+                    );
+                  },
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: CachedNetworkImage(
+                      imageUrl: wallpapers[index]['thumbnail_file'],
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: Colors.grey[300],
+                        child: Center(child: CircularProgressIndicator()),
+                      ),
+                      errorWidget: (context, url, error) => Icon(Icons.error),
+                    ),
+                  ),
+                );
+              },
             ),
-          );
-        },
-      ),
     );
   }
 }

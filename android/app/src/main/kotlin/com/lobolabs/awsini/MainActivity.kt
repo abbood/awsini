@@ -1,4 +1,4 @@
-package com.example.awsini
+package com.lobolabs.awsini
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -3,24 +3,25 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'dart:ui' as ui;
 import 'package:flutter/rendering.dart';
 import 'package:permission_handler/permission_handler.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:awsini/helpers/permission_helper.dart';
-import 'package:path/path.dart' as path;
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'dart:io';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:http/http.dart' as http;
 
 class WallpaperDetailPage extends StatefulWidget {
-  final String pngPath;
-  final String svgPath;
-  final String detailPath;
+  final String pngUrl;
+  final String svgUrl;
+  final String detailUrl;
   final String translationText;
 
-  WallpaperDetailPage(
-      {required this.pngPath,
-      required this.svgPath,
-      required this.detailPath,
-      required this.translationText});
+  WallpaperDetailPage({
+    required this.pngUrl,
+    required this.svgUrl,
+    required this.detailUrl,
+    required this.translationText,
+  });
 
   @override
   _WallpaperDetailPageState createState() => _WallpaperDetailPageState();
@@ -28,6 +29,22 @@ class WallpaperDetailPage extends StatefulWidget {
 
 class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
   bool _addTranslation = false;
+  late Future<String> _svgFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _svgFuture = _loadSvgFromUrl(widget.svgUrl);
+  }
+
+  Future<String> _loadSvgFromUrl(String url) async {
+    final response = await http.get(Uri.parse(url));
+    if (response.statusCode == 200) {
+      return response.body;
+    } else {
+      throw Exception('Failed to load SVG');
+    }
+  }
 
   Future<void> _getAndroidVersion() async {
     final deviceInfo = DeviceInfoPlugin();
@@ -81,12 +98,10 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
             Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()), paint);
 
         // Load and draw SVG
-        final svgDrawableRoot = await svg.fromSvgString(
-            await DefaultAssetBundle.of(context).loadString(widget.svgPath),
-            widget.svgPath);
+        final svgString = await _svgFuture;
+        final svgDrawableRoot = await svg.fromSvgString(svgString, widget.svgUrl);
         final svgSize = svgDrawableRoot.viewport.size;
-        final scale =
-            (width - 200) / svgSize.width; // 10px padding on each side
+        final scale = (width - 200) / svgSize.width; // 10px padding on each side
         final scaledSvgHeight = svgSize.height * scale;
         final matrix = Matrix4.identity()
           ..translate((width - svgSize.width * scale) / 2,
@@ -156,7 +171,7 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
     } else {
       print('Failed to convert image to PNG');
     }
-}
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -168,9 +183,19 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Image.asset(
-              widget.detailPath,
+            Image.network(
+              widget.detailUrl,
               fit: BoxFit.contain,
+              loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Center(
+                  child: CircularProgressIndicator(
+                    value: loadingProgress.expectedTotalBytes != null
+                        ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                        : null,
+                  ),
+                );
+              },
             ),
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 16.0),
