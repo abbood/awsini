@@ -1,14 +1,13 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
+import 'package:awsini/helpers/permission_helper.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'dart:ui' as ui;
-import 'package:flutter/rendering.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:device_info_plus/device_info_plus.dart';
-import 'package:awsini/helpers/permission_helper.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
-import 'dart:io';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class WallpaperDetailPage extends StatefulWidget {
   final String pngUrl;
@@ -99,9 +98,11 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
 
         // Load and draw SVG
         final svgString = await _svgFuture;
-        final svgDrawableRoot = await svg.fromSvgString(svgString, widget.svgUrl);
+        final svgDrawableRoot =
+            await svg.fromSvgString(svgString, widget.svgUrl);
         final svgSize = svgDrawableRoot.viewport.size;
-        final scale = (width - 200) / svgSize.width; // 10px padding on each side
+        final scale =
+            (width - 200) / svgSize.width; // 10px padding on each side
         final scaledSvgHeight = svgSize.height * scale;
         final matrix = Matrix4.identity()
           ..translate((width - svgSize.width * scale) / 2,
@@ -162,7 +163,7 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
         quality: 100,
         name: 'wallpaper_${DateTime.now().millisecondsSinceEpoch}.png',
       );
-      
+
       if (result['isSuccess']) {
         print('Image saved to gallery successfully');
       } else {
@@ -179,61 +180,87 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
       appBar: AppBar(
         title: Text('Wallpaper Detail'),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Image.network(
-              widget.detailUrl,
-              fit: BoxFit.contain,
-              loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
-                if (loadingProgress == null) return child;
-                return Center(
-                  child: CircularProgressIndicator(
-                    value: loadingProgress.expectedTotalBytes != null
-                        ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
-                        : null,
-                  ),
-                );
-              },
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16.0),
-              child: Text(
-                widget.translationText,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.grey,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+      body: Column(
+        children: [
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Text(
-                    'Add translation (Beta)',
-                    style: TextStyle(fontSize: 16),
-                  ),
-                  Checkbox(
-                    value: _addTranslation,
-                    onChanged: (bool? value) {
-                      setState(() {
-                        _addTranslation = value ?? false;
-                      });
+                  Image.network(
+                    widget.detailUrl,
+                    fit: BoxFit.contain,
+                    loadingBuilder: (BuildContext context, Widget child,
+                        ImageChunkEvent? loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Center(
+                        child: CircularProgressIndicator(
+                          value: loadingProgress.expectedTotalBytes != null
+                              ? loadingProgress.cumulativeBytesLoaded /
+                                  loadingProgress.expectedTotalBytes!
+                              : null,
+                        ),
+                      );
                     },
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    child: Text(
+                      widget.translationText,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Add translation (Beta)',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                        Checkbox(
+                          value: _addTranslation,
+                          onChanged: (bool? value) {
+                            setState(() {
+                              _addTranslation = value ?? false;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _download(context),
-        child: Icon(Icons.download),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: ElevatedButton(
+              onPressed: () => _download(context),
+              child: Text(
+                'Download Wallpaper',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.black,
+                foregroundColor: Colors.white,
+                minimumSize:
+                    Size(double.infinity, 50), // full width and 50 height
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(5),
+                ),
+              ),
+            ),
+          )
+        ],
       ),
     );
   }

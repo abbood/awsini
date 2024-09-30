@@ -139,10 +139,8 @@ class _WallpaperGalleryState extends State<WallpaperGallery> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Wallpaper Gallery'),
-      ),
-      body: Stack(
+      body: SafeArea(
+          child: Stack(
         children: [
           Skeletonizer(
             enabled: isLoading,
@@ -202,7 +200,7 @@ class _WallpaperGalleryState extends State<WallpaperGallery> {
               ),
             ),
         ],
-      ),
+      )),
     );
   }
 }
