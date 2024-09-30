@@ -13,60 +13,30 @@ dependencies:
   path_provider: any
   permission_handler: any
   device_info_plus: any
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  flutter_lints: ^4.0.0
   flutter_downloader: ^1.8.0+1
-  device_info_plus: ^9.1.0
   file_picker: ^5.3.1
   path: ^1.8.3
   flutter_svg: ^1.1.6
   flutter_launcher_icons: ^0.13.1
   flutter_native_splash: ^2.3.1
   image_gallery_saver: ^2.0.3
+  cached_network_image: ^3.2.3
+  shared_preferences: ^2.0.0
+  firebase_storage: ^12.3.2
+  firebase_core: ^3.6.0
+  cloud_firestore: ^5.4.3
 
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+  
 flutter:
   uses-material-design: true
   assets:
     - assets/logo.svg
     - assets/icons/
-
-    - assets/wallpaper1.svg
-    - assets/wallpaper1.png
-    - assets/wallpaper1_detail.png
-
-    - assets/wallpaper2.svg
-    - assets/wallpaper2.png
-    - assets/wallpaper2_detail.png
-
-    - assets/wallpaper3.svg
-    - assets/wallpaper3.png
-    - assets/wallpaper3_detail.png
-
-    - assets/wallpaper4.svg
-    - assets/wallpaper4.png
-    - assets/wallpaper4_detail.png
-
-    - assets/wallpaper5.svg
-    - assets/wallpaper5.png
-    - assets/wallpaper5_detail.png
-
-    - assets/wallpaper6.svg
-    - assets/wallpaper6.png
-    - assets/wallpaper6_detail.png
-
-    - assets/wallpaper7.svg
-    - assets/wallpaper7.png
-    - assets/wallpaper7_detail.png
-
-    - assets/wallpaper8.svg
-    - assets/wallpaper8.png
-    - assets/wallpaper8_detail.png
-
-    - assets/wallpaper9.svg
-    - assets/wallpaper9.png
-    - assets/wallpaper9_detail.png
 
     - assets/splash.png
     - assets/splash_android12.png

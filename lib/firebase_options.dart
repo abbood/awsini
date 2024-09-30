@@ -65,4 +65,5 @@ class DefaultFirebaseOptions {
     storageBucket: 'awsini-app.appspot.com',
     iosBundleId: 'com.lobolabs.awsini',
   );
+
 }
