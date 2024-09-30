@@ -3,10 +3,11 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
-import 'firebase_options.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
+import 'firebase_options.dart';
 import 'widgets/wallpaper_detail_page.dart';
 
 void main() async {
@@ -56,6 +57,16 @@ class _WallpaperGalleryState extends State<WallpaperGallery> {
   }
 
   Future<void> fetchWallpapers() async {
+    for (int i = 0; i < 10; i++) {
+      wallpapers.add({
+        'id': BoneMock.name,
+        'thumbnail_file': BoneMock.chars(30),
+        'vector_file': BoneMock.chars(30),
+        'detail_file': BoneMock.chars(30),
+        'translation': BoneMock.chars(30),
+      });
+    }
+
     try {
       final FirebaseFirestore firestore = FirebaseFirestore.instance;
       final QuerySnapshot snapshot =
@@ -131,9 +142,11 @@ class _WallpaperGalleryState extends State<WallpaperGallery> {
       appBar: AppBar(
         title: Text('Wallpaper Gallery'),
       ),
-      body: isLoading
-          ? Center(child: CircularProgressIndicator())
-          : GridView.builder(
+      body: Stack(
+        children: [
+          Skeletonizer(
+            enabled: isLoading,
+            child: GridView.builder(
               padding: EdgeInsets.all(8),
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
@@ -159,19 +172,37 @@ class _WallpaperGalleryState extends State<WallpaperGallery> {
                   },
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(8),
-                    child: CachedNetworkImage(
-                      imageUrl: wallpapers[index]['thumbnail_file'],
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
-                        color: Colors.grey[300],
-                        child: Center(child: CircularProgressIndicator()),
+                    child: Skeleton.replace(
+                      width: 48,
+                      height: 48,
+                      child: CachedNetworkImage(
+                        imageUrl: wallpapers[index]['thumbnail_file'],
+                        fit: BoxFit.cover,
+                        errorWidget: (context, url, error) => Icon(Icons.error),
                       ),
-                      errorWidget: (context, url, error) => Icon(Icons.error),
                     ),
                   ),
                 );
               },
             ),
+          ),
+          if (isLoading)
+            Center(
+              child: Container(
+                padding: EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Fetching your wallpapers,\nthis will take a few seconds...',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.white, fontSize: 16),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
