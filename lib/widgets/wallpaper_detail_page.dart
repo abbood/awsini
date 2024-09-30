@@ -29,6 +29,7 @@ class WallpaperDetailPage extends StatefulWidget {
 class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
   bool _addTranslation = false;
   late Future<String> _svgFuture;
+  bool _isDownloading = false;
 
   @override
   void initState() {
@@ -54,6 +55,9 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
   }
 
   Future<void> _download(BuildContext context) async {
+    setState(() {
+      _isDownloading = true;
+    });
     _getAndroidVersion();
     // Check both permissions
     var photoStatus = await Permission.photos.status;
@@ -140,6 +144,11 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to save wallpaper: $e')),
         );
+
+      } finally {
+        setState(() {
+          _isDownloading = false;
+        });
       }
     } else if (photoStatus.isPermanentlyDenied ||
         storageStatus.isPermanentlyDenied) {
@@ -178,7 +187,13 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Wallpaper Detail'),
+          leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: Text(''), // Empty title
+        backgroundColor: Colors.transparent, // Make AppBar transparent
+        elevation: 0, // Remove shadow      
       ),
       body: Column(
         children: [
@@ -241,19 +256,26 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton(
-              onPressed: () => _download(context),
-              child: Text(
-                'Download Wallpaper',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
-              ),
+              onPressed: _isDownloading ? null : () => _download(context),
+              child: _isDownloading
+                  ? SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : Text(
+                      'Download Wallpaper',
+                      style: TextStyle(
+                        fontSize: 16,
+                      ),
+                    ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.black,
                 foregroundColor: Colors.white,
-                minimumSize:
-                    Size(double.infinity, 50), // full width and 50 height
+                minimumSize: Size(double.infinity, 50),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(5),
                 ),
