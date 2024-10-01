@@ -59,7 +59,6 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 1; // Start with Explore page
   bool _showWelcome = true;
-
   final List<Widget> _pages = [
     FavoritesPage(),
     ExplorePage(),
@@ -75,7 +74,6 @@ class _MainScreenState extends State<MainScreen> {
   Future<void> _checkFirstSeen() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     bool _seen = (prefs.getBool('seen') ?? false);
-
     if (_seen) {
       setState(() {
         _showWelcome = false;
@@ -93,6 +91,9 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final bool isDarkMode = theme.brightness == Brightness.dark;
+
     return _showWelcome
         ? WelcomeCarousel(onComplete: _onWelcomeComplete)
         : Scaffold(
@@ -104,21 +105,28 @@ class _MainScreenState extends State<MainScreen> {
                   _currentIndex = index;
                 });
               },
+              selectedItemColor: theme.colorScheme.primary,
+              unselectedItemColor: isDarkMode ? Colors.grey[600] : Colors.grey[400],
+              selectedLabelStyle: TextStyle(fontWeight: FontWeight.bold),
+              unselectedLabelStyle: TextStyle(fontWeight: FontWeight.normal),
+              showUnselectedLabels: true,
+              type: BottomNavigationBarType.fixed,
               items: [
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.favorite),
-                  label: 'Favorites',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.explore),
-                  label: 'Explore',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.account_circle),
-                  label: 'Account',
-                ),
+                _buildNavItem(Icons.favorite, 'Favorites', 0),
+                _buildNavItem(Icons.explore, 'Explore', 1),
+                _buildNavItem(Icons.account_circle, 'Account', 2),
               ],
             ),
           );
+  }
+
+  BottomNavigationBarItem _buildNavItem(IconData icon, String label, int index) {
+    return BottomNavigationBarItem(
+      icon: Icon(
+        icon,
+        size: _currentIndex == index ? 28 : 24,
+      ),
+      label: label,
+    );
   }
 }
