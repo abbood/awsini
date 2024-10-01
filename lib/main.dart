@@ -9,6 +9,8 @@ import 'package:skeletonizer/skeletonizer.dart';
 
 import 'firebase_options.dart';
 import 'widgets/wallpaper_detail_page.dart';
+import 'widgets/welcome_carousel.dart';
+
 
 void main() async {
   print("Starting app initialization");
@@ -27,7 +29,39 @@ void main() async {
   runApp(WallpaperMarketplaceApp());
 }
 
-class WallpaperMarketplaceApp extends StatelessWidget {
+class WallpaperMarketplaceApp extends StatefulWidget {
+  @override
+  _WallpaperMarketplaceAppState createState() => _WallpaperMarketplaceAppState();
+}
+
+class _WallpaperMarketplaceAppState extends State<WallpaperMarketplaceApp> {
+  bool _showWelcome = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkFirstSeen();
+  }
+
+  Future<void> _checkFirstSeen() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool _seen = (prefs.getBool('seen') ?? false);
+
+    if (_seen) {
+      setState(() {
+        _showWelcome = false;
+      });
+    }
+  }
+
+  void _onWelcomeComplete() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('seen', true);
+    setState(() {
+      _showWelcome = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -35,11 +69,14 @@ class WallpaperMarketplaceApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: WallpaperGallery(),
+      home: _showWelcome
+          ? WelcomeCarousel(onComplete: _onWelcomeComplete)
+          : WallpaperGallery(),
       debugShowCheckedModeBanner: false,
     );
   }
 }
+
 
 class WallpaperGallery extends StatefulWidget {
   @override
