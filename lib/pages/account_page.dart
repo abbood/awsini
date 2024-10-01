@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:awsini/pages/licenses_page.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -92,6 +93,10 @@ class AccountPage extends StatelessWidget {
         ListTile(
           title: Text('Terms of Service'),
           onTap: () => _launchUrl('https://www.awsini.com/terms'),
+        ),
+        ListTile(
+          title: Text('Licenses'),
+          onTap: () => Navigator.of(context).push(SlideUpRoute(page: LicensesPage())),        
         ),
       ],
     );
