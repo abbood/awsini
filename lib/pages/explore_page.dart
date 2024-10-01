@@ -15,11 +15,36 @@ class ExplorePage extends StatefulWidget {
 class _ExplorePageState extends State<ExplorePage> {
   List<Map<String, dynamic>> wallpapers = [];
   bool isLoading = true;
+  Set<String> favorites = {};
 
   @override
   void initState() {
     super.initState();
     fetchWallpapers();
+    loadFavorites();
+  }
+
+  Future<void> loadFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      favorites = Set<String>.from(prefs.getStringList('favorites') ?? []);
+    });
+  }
+
+  Future<void> saveFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('favorites', favorites.toList());
+  }
+
+  void toggleFavorite(String id) {
+    setState(() {
+      if (favorites.contains(id)) {
+        favorites.remove(id);
+      } else {
+        favorites.add(id);
+      }
+    });
+    saveFavorites();
   }
 
   Future<void> fetchWallpapers() async {
@@ -184,6 +209,28 @@ class _ExplorePageState extends State<ExplorePage> {
                                       ),
                                     ))
                                 .toList(),
+                          ),
+                        ),
+                        Positioned(
+                          bottom: 8,
+                          right: 8,
+                          child: GestureDetector(
+                            onTap: () =>
+                                toggleFavorite(wallpapers[index]['id']),
+                            child: Container(
+                              padding: EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withOpacity(0.5),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                favorites.contains(wallpapers[index]['id'])
+                                    ? Icons.favorite
+                                    : Icons.favorite_border,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
                           ),
                         ),
                       ],
