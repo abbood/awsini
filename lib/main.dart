@@ -4,9 +4,11 @@ import 'package:awsini/pages/favorites_page.dart';
 import 'package:awsini/services/cached_url_fetcher.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'firebase_options.dart';
+import 'providers/theme_provider.dart';
 import 'widgets/welcome_carousel.dart';
 
 void main() async {
@@ -23,19 +25,28 @@ void main() async {
   }
   await CachedUrlFetcher.loadCache();
   print("Running app");
-  runApp(WallpaperMarketplaceApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => ThemeProvider(),
+      child: WallpaperMarketplaceApp(),
+    ),
+  );
 }
 
 class WallpaperMarketplaceApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Wallpaper Marketplace',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-      ),
-      home: MainScreen(),
-      debugShowCheckedModeBanner: false,
+    return Consumer<ThemeProvider>(
+      builder: (context, themeProvider, child) {
+        return MaterialApp(
+          title: 'Wallpaper Marketplace',
+          theme: themeProvider.lightTheme,
+          darkTheme: themeProvider.darkTheme,
+          themeMode: themeProvider.themeMode,
+          home: MainScreen(),
+          debugShowCheckedModeBanner: false,
+        );
+      },
     );
   }
 }
