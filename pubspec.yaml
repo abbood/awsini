@@ -42,3 +42,9 @@ flutter:
 
     - assets/splash.png
     - assets/splash_android12.png
+
+    - assets/wallpaper8_detail.png
+    - assets/wallpaper9_detail.png
+    - assets/low-rez-calligraphy.png
+    - assets/calligrapher-desktop.png
+    - assets/calligraphy-conversion.png
