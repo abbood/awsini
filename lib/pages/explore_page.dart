@@ -88,16 +88,12 @@ class _ExplorePageState extends State<ExplorePage> {
         final data = doc.data() as Map<String, dynamic>;
         String thumbnailUrl =
             await CachedUrlFetcher.getImageUrl(data['thumbnail_file'] ?? '');
-        String vectorUrl =
-            await CachedUrlFetcher.getImageUrl(data['vector_file'] ?? '');
-        String detailUrl =
-            await CachedUrlFetcher.getImageUrl(data['detail_file'] ?? '');
 
         fetchedWallpapers.add({
           'id': data['id'] ?? '',
           'thumbnail_file': thumbnailUrl,
-          'vector_file': vectorUrl,
-          'detail_file': detailUrl,
+          'vector_file': data['vector_file'] ?? '',
+          'detail_file': data['detail_file'] ?? '',
           'translation': data['translation'] ?? '',
           'ar': data['ar'] ?? '',
           'tags': data['tags'] ?? '',
@@ -162,9 +158,9 @@ class _ExplorePageState extends State<ExplorePage> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => WallpaperDetailPage(
-                              pngUrl: wallpapers[index]['thumbnail_file'],
-                              svgUrl: wallpapers[index]['vector_file'],
-                              detailUrl: wallpapers[index]['detail_file'],
+                              thumbnailUrl: wallpapers[index]['thumbnail_file'],
+                              rawVectorUrl: wallpapers[index]['vector_file'],
+                              rawDetailUrl: wallpapers[index]['detail_file'],
                               translationText: wallpapers[index]['translation'],
                               arabicText: wallpapers[index]['ar'],
                               tags: tags),

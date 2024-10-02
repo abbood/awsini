@@ -123,11 +123,11 @@ class _FavoritesPageState extends State<FavoritesPage> {
                           context,
                           MaterialPageRoute(
                             builder: (context) => WallpaperDetailPage(
-                                pngUrl: favoriteWallpapers[index]
+                                thumbnailUrl: favoriteWallpapers[index]
                                     ['thumbnail_file'],
-                                svgUrl: favoriteWallpapers[index]
+                                rawVectorUrl: favoriteWallpapers[index]
                                     ['vector_file'],
-                                detailUrl: favoriteWallpapers[index]
+                                rawDetailUrl: favoriteWallpapers[index]
                                     ['detail_file'],
                                 translationText: favoriteWallpapers[index]
                                     ['translation'],
