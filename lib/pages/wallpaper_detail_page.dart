@@ -230,7 +230,9 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
     return Scaffold(
+      backgroundColor: isDarkMode ? Colors.black : Color(0xFFF9F9FA),
       appBar: AppBar(
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
@@ -247,116 +249,42 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  FutureBuilder<String>(
-                    future: _detailUrlFuture,
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return Center(child: CircularProgressIndicator());
-                      } else if (snapshot.hasError) {
-                        return Center(child: Text('Error loading image'));
-                      } else {
-                        return Image.network(
-                          snapshot.data!,
-                          fit: BoxFit.contain,
-                        );
-                      }
-                    },
-                  ),
-                  _buildTags(),
-                  _buildArabicText(),
-                  _buildTranslationText(),
-                  _buildAddTranslationCheckbox(),
-                  SizedBox(height: 20),
-                  _buildArtistInfo(),
+                  _buildWallpaperImage(),
+                  ChakraCard(child: _buildWallpaperMetadata()),
+                  ChakraCard(child: _buildArtistInfo()),
                 ],
               ),
             ),
           ),
-          _buildDownloadButton(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTags() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Center(
-        child: Wrap(
-          alignment: WrapAlignment.center,
-          spacing: 8.0,
-          runSpacing: 4.0,
-          children: widget.tags
-              .map((tag) => Chip(
-                    label: Text(tag,
-                        style: TextStyle(fontSize: 12, color: Colors.white)),
-                    backgroundColor: Colors.black.withOpacity(0.7),
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ))
-              .toList(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildArabicText() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-      child: Text(
-        widget.arabicText,
-        textAlign: TextAlign.center,
-        style: TextStyle(color: Colors.grey, fontSize: 16),
-      ),
-    );
-  }
-
-  Widget _buildTranslationText() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-      child: Text(
-        widget.translationText,
-        textAlign: TextAlign.center,
-        style: TextStyle(color: Colors.grey, fontSize: 16),
-      ),
-    );
-  }
-
-  Widget _buildAddTranslationCheckbox() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text('Add translation (Beta)', style: TextStyle(fontSize: 16)),
-          Checkbox(
-            value: _addTranslation,
-            onChanged: (bool? value) {
-              setState(() {
-                _addTranslation = value ?? false;
-              });
-            },
-          ),
+          _buildDownloadSection(isDarkMode),
         ],
       ),
     );
   }
 
   Widget _buildArtistInfo() {
-    if (_artistDataFuture == null) {
-      return _buildUnknownArtist();
-    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(height: 16),
+        _artistDataFuture == null ? _buildUnknownArtist() : _buildKnownArtist(),
+      ],
+    );
+  }
 
+  Widget _buildKnownArtist() {
     return FutureBuilder<Map<String, dynamic>>(
       future: _artistDataFuture,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
+        } else if (snapshot.hasError || !snapshot.hasData) {
           return _buildUnknownArtist();
-        } else if (snapshot.hasData) {
+        } else {
           final artistData = snapshot.data!;
+          final isDarkMode = Theme.of(context).brightness == Brightness.dark;
           return Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -372,49 +300,30 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
                   ),
                 ],
               ),
-              SizedBox(height: 8),
+              SizedBox(height: 16),
               Text(
                 'Artist: ${artistData['full_name']}',
-                style: TextStyle(color: Colors.white, fontSize: 14),
+                style: TextStyle(
+                  color: isDarkMode ? Colors.white : Colors.black87,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               SizedBox(height: 8),
               Text(
                 artistData['summary'] ?? 'No summary available',
-                style: TextStyle(color: Colors.grey, fontSize: 12),
+                style: TextStyle(
+                  color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
+                  fontSize: 14,
+                ),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: 16),
               _buildSocialMediaLinks(artistData),
             ],
           );
-        } else {
-          return _buildUnknownArtist();
         }
       },
-    );
-  }
-
-  Widget _buildUnknownArtist() {
-    return Column(
-      children: [
-        Icon(Icons.account_circle, size: 80, color: Colors.grey),
-        SizedBox(height: 8),
-        Text(
-          'Artist: Unknown',
-          style: TextStyle(color: Colors.white, fontSize: 14),
-        ),
-        SizedBox(height: 8),
-        OutlinedButton(
-          onPressed: () {
-            // TODO: Implement claim artist functionality
-          },
-          child: Text('Claim Artist'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.grey,
-            side: BorderSide(color: Colors.grey),
-          ),
-        ),
-      ],
     );
   }
 
@@ -423,6 +332,10 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
     if (socialMedia == null || socialMedia.isEmpty) {
       return SizedBox.shrink();
     }
+
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    final iconColor = isDarkMode ? Colors.grey[400] : Colors.grey[700];
+    final textColor = isDarkMode ? Colors.grey[300] : Colors.grey[800];
 
     return Wrap(
       alignment: WrapAlignment.center,
@@ -451,11 +364,11 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 16, color: Colors.grey),
+              Icon(icon, size: 16, color: iconColor),
               SizedBox(width: 4),
               Text(
                 entry.key,
-                style: TextStyle(color: Colors.grey, fontSize: 12),
+                style: TextStyle(color: textColor, fontSize: 12),
               ),
             ],
           ),
@@ -464,17 +377,227 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
     );
   }
 
-  String _processSocialMediaUrl(String url, String prefix) {
-    if (url.startsWith('http://')) {
-      url = 'https://' + url.substring(7);
-    }
-    if (!url.startsWith('https://')) {
-      url = 'https://' + url;
-    }
-    if (!url.startsWith(prefix)) {
-      url = prefix + '/' + url.replaceAll(RegExp(r'^https?:\/\/(www\.)?'), '');
-    }
-    return url;
+  Widget _buildWallpaperImage() {
+    return ChakraCard(
+      padding: EdgeInsets.zero,
+      child: FutureBuilder<String>(
+        future: _detailUrlFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(
+              child: CircularProgressIndicator(),
+            );
+          } else if (snapshot.hasError) {
+            return Center(
+              child: Text(
+                'Error loading image',
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.error,
+                ),
+              ),
+            );
+          } else {
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(8.0),
+              child: Image.network(
+                snapshot.data!,
+                fit: BoxFit.cover,
+                loadingBuilder: (BuildContext context, Widget child,
+                    ImageChunkEvent? loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded /
+                              loadingProgress.expectedTotalBytes!
+                          : null,
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Center(
+                    child: Text(
+                      'Failed to load image',
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildWallpaperMetadata() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        SizedBox(height: 16),
+        _buildTags(),
+        SizedBox(height: 16),
+        _buildArabicText(),
+        SizedBox(height: 8),
+        _buildTranslationText(),
+      ],
+    );
+  }
+
+  Widget _buildTags() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Center(
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8.0,
+          runSpacing: 4.0,
+          children: widget.tags
+              .map((tag) => Chip(
+                    label: Text(tag,
+                        style: TextStyle(fontSize: 12, color: Colors.white)),
+                    backgroundColor: Colors.black.withOpacity(0.7),
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ))
+              .toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildArabicText() {
+    return Text(
+      widget.arabicText,
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey
+            : Colors.black87,
+        fontSize: 16,
+      ),
+    );
+  }
+
+  Widget _buildTranslationText() {
+    return Text(
+      widget.translationText,
+      textAlign: TextAlign.center,
+      style: TextStyle(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey
+            : Colors.black87,
+        fontSize: 16,
+      ),
+    );
+  }
+
+  Widget _buildUnknownArtist() {
+    return Center(
+      child: Column(
+        children: [
+          Icon(Icons.account_circle, size: 80, color: Colors.grey),
+          SizedBox(height: 8),
+          Text(
+            'Artist: Unknown',
+            style: TextStyle(
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : Colors.black87,
+              fontSize: 14,
+            ),
+          ),
+          SizedBox(height: 8),
+          OutlinedButton(
+            onPressed: () {
+              // TODO: Implement claim artist functionality
+            },
+            child: Text('Claim Artist'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.grey,
+              side: BorderSide(color: Colors.grey),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDownloadSection(bool isDarkMode) {
+    return Container(
+      color: isDarkMode ? Colors.grey[850] : Colors.grey[200],
+      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildAddTranslationCheckbox(isDarkMode),
+          SizedBox(height: 8),
+          _buildDownloadButton(isDarkMode),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddTranslationCheckbox(bool isDarkMode) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          'Add translation (Beta)',
+          style: TextStyle(
+            fontSize: 14,
+            color: isDarkMode ? Colors.grey[300] : Colors.black87,
+          ),
+        ),
+        Checkbox(
+          value: _addTranslation,
+          onChanged: (bool? value) {
+            setState(() {
+              _addTranslation = value ?? false;
+            });
+          },
+          fillColor: MaterialStateProperty.resolveWith((states) {
+            if (states.contains(MaterialState.selected)) {
+              return isDarkMode ? Colors.grey : Colors.black87;
+            }
+            return isDarkMode ? Colors.grey[700] : Colors.grey[400];
+          }),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDownloadButton(bool isDarkMode) {
+    return ElevatedButton(
+      onPressed: _isDownloading ? null : () => _download(context),
+      child: _isDownloading
+          ? SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                strokeWidth: 2,
+              ),
+            )
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.download, size: 24),
+                SizedBox(width: 8),
+                Text('Download Wallpaper', style: TextStyle(fontSize: 16)),
+              ],
+            ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.black,
+        foregroundColor: Colors.white,
+        minimumSize: Size(double.infinity, 50),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    );
   }
 
   Future<void> _launchUrl(String url) async {
@@ -484,36 +607,67 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
     }
   }
 
-  Widget _buildDownloadButton() {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: ElevatedButton(
-        onPressed: _isDownloading ? null : () => _download(context),
-        child: _isDownloading
-            ? SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                  strokeWidth: 2,
-                ),
-              )
-            : Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.download, size: 24),
-                  SizedBox(width: 8),
-                  Text('Download Wallpaper', style: TextStyle(fontSize: 16)),
-                ],
-              ),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
-          minimumSize: Size(double.infinity, 50),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(5),
+  String _processSocialMediaUrl(String url, String prefix) {
+    if (url.isEmpty) {
+      return prefix;
+    }
+
+    // Remove any leading or trailing whitespace
+    url = url.trim();
+
+    // If the URL starts with 'http://', replace it with 'https://'
+    if (url.startsWith('http://')) {
+      url = 'https://' + url.substring(7);
+    }
+
+    // If the URL doesn't start with 'https://', add it
+    if (!url.startsWith('https://')) {
+      url = 'https://' + url;
+    }
+
+    // If the URL doesn't start with the expected prefix (after adding https://),
+    // assume it's just a username or page name and add it to the prefix
+    if (!url.startsWith(prefix)) {
+      // Remove 'https://www.' or 'https://' if present
+      url = url.replaceAll(RegExp(r'^https?://(www\.)?'), '');
+
+      // Combine the prefix with the processed URL
+      url = prefix + '/' + url;
+    }
+
+    return url;
+  }
+}
+
+class ChakraCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+
+  const ChakraCard({
+    Key? key,
+    required this.child,
+    this.padding = const EdgeInsets.all(16.0),
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final isDarkMode = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      margin: EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+      decoration: BoxDecoration(
+        color: isDarkMode ? Colors.grey[900] : Colors.white,
+        borderRadius: BorderRadius.circular(8.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 3.0,
+            offset: Offset(0, 1),
           ),
-        ),
+        ],
+      ),
+      child: Padding(
+        padding: padding,
+        child: child,
       ),
     );
   }
