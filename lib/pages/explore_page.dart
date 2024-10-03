@@ -158,7 +158,6 @@ class _ExplorePageState extends State<ExplorePage> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => WallpaperDetailPage(
-                              thumbnailUrl: wallpapers[index]['thumbnail_file'],
                               rawVectorUrl: wallpapers[index]['vector_file'],
                               rawDetailUrl: wallpapers[index]['detail_file'],
                               translationText: wallpapers[index]['translation'],

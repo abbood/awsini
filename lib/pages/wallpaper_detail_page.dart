@@ -11,7 +11,6 @@ import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class WallpaperDetailPage extends StatefulWidget {
-  final String thumbnailUrl;
   final String rawVectorUrl;
   final String rawDetailUrl;
   final String translationText;
@@ -19,7 +18,6 @@ class WallpaperDetailPage extends StatefulWidget {
   List<String> tags;
 
   WallpaperDetailPage({
-    required this.thumbnailUrl,
     required this.rawVectorUrl,
     required this.rawDetailUrl,
     required this.translationText,
@@ -41,7 +39,6 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
   @override
   void initState() {
     super.initState();
-    _svgFuture = _loadSvgFromUrl(widget.rawVectorUrl);
     _detailUrlFuture = CachedUrlFetcher.getImageUrl(widget.rawDetailUrl);
   }
 
@@ -110,9 +107,8 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
             Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()), paint);
 
         // Load and draw SVG
-        final svgString = await _svgFuture;
-        final svgDrawableRoot =
-            await svg.fromSvgString(svgString, widget.rawVectorUrl);
+        final svgString = await _loadSvgFromUrl(_vectorUrl!);
+        final svgDrawableRoot = await svg.fromSvgString(svgString, _vectorUrl!);
         final svgSize = svgDrawableRoot.viewport.size;
         final scale =
             (width - 200) / svgSize.width; // 10px padding on each side
@@ -225,7 +221,73 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
                       }
                     },
                   ),
-                  // Rest of your UI elements...
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 8.0),
+                    child: Center(
+                      child: Wrap(
+                        alignment: WrapAlignment.center,
+                        spacing: 8.0, // space between tags
+                        runSpacing: 4.0, // space between lines
+                        children: widget.tags
+                            .map((tag) => Chip(
+                                  label: Text(
+                                    tag,
+                                    style: TextStyle(
+                                        fontSize: 12, color: Colors.white),
+                                  ),
+                                  backgroundColor:
+                                      Colors.black.withOpacity(0.7),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 0),
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ))
+                            .toList(),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    child: Text(
+                      widget.arabicText,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                    child: Text(
+                      widget.translationText,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Add translation (Beta)',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                        Checkbox(
+                          value: _addTranslation,
+                          onChanged: (bool? value) {
+                            setState(() {
+                              _addTranslation = value ?? false;
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
