@@ -89,12 +89,14 @@ class _ExplorePageState extends State<ExplorePage> {
         String thumbnailUrl =
             await CachedUrlFetcher.getImageUrl(data['thumbnail_file'] ?? '');
 
+
         fetchedWallpapers.add({
           'id': data['id'] ?? '',
           'thumbnail_file': thumbnailUrl,
           'vector_file': data['vector_file'] ?? '',
           'detail_file': data['detail_file'] ?? '',
           'translation': data['translation'] ?? '',
+          'artist_id': data['artist_id'] ?? null,
           'ar': data['ar'] ?? '',
           'tags': data['tags'] ?? '',
         });
@@ -161,6 +163,7 @@ class _ExplorePageState extends State<ExplorePage> {
                               rawVectorUrl: wallpapers[index]['vector_file'],
                               rawDetailUrl: wallpapers[index]['detail_file'],
                               translationText: wallpapers[index]['translation'],
+                              artistId: wallpapers[index]['artist_id'],
                               arabicText: wallpapers[index]['ar'],
                               tags: tags),
                         ),

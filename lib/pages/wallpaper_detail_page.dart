@@ -3,19 +3,23 @@ import 'dart:ui' as ui;
 
 import 'package:awsini/helpers/permission_helper.dart';
 import 'package:awsini/services/cached_url_fetcher.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class WallpaperDetailPage extends StatefulWidget {
   final String rawVectorUrl;
   final String rawDetailUrl;
   final String translationText;
   final String arabicText;
-  List<String> tags;
+  final String? artistId;
+  final List<String> tags;
 
   WallpaperDetailPage({
     required this.rawVectorUrl,
@@ -23,6 +27,7 @@ class WallpaperDetailPage extends StatefulWidget {
     required this.translationText,
     required this.arabicText,
     required this.tags,
+    this.artistId,
   });
 
   @override
@@ -35,11 +40,47 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
   String? _vectorUrl;
   late Future<String> _svgFuture;
   bool _isDownloading = false;
+  Future<Map<String, dynamic>>? _artistDataFuture;
 
   @override
   void initState() {
     super.initState();
     _detailUrlFuture = CachedUrlFetcher.getImageUrl(widget.rawDetailUrl);
+    if (widget.artistId != null) {
+      _artistDataFuture = _fetchArtistData();
+    }
+  }
+
+  Future<Map<String, dynamic>> _fetchArtistData() async {
+    try {
+      final artistDoc = await FirebaseFirestore.instance
+          .collection('artists')
+          .doc(widget.artistId)
+          .get();
+
+      if (artistDoc.exists) {
+        final data = artistDoc.data() as Map<String, dynamic>;
+
+        // Fetch URLs for picture and signature
+        final pictureUrl = await CachedUrlFetcher.getImageUrl(
+            data['picture_url'] ?? '',
+            folder: 'artists');
+        final signatureUrl = await CachedUrlFetcher.getImageUrl(
+            data['signature_url'] ?? '',
+            folder: 'artists');
+
+        return {
+          ...data,
+          'picture_url': pictureUrl,
+          'signature_url': signatureUrl,
+        };
+      } else {
+        throw Exception('Artist document does not exist');
+      }
+    } catch (e) {
+      print('Error fetching artist data: $e');
+      rethrow; // Rethrow the error to be caught in the FutureBuilder
+    }
   }
 
   Future<String> _loadSvgFromUrl(String url) async {
@@ -221,112 +262,237 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
                       }
                     },
                   ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 8.0),
-                    child: Center(
-                      child: Wrap(
-                        alignment: WrapAlignment.center,
-                        spacing: 8.0, // space between tags
-                        runSpacing: 4.0, // space between lines
-                        children: widget.tags
-                            .map((tag) => Chip(
-                                  label: Text(
-                                    tag,
-                                    style: TextStyle(
-                                        fontSize: 12, color: Colors.white),
-                                  ),
-                                  backgroundColor:
-                                      Colors.black.withOpacity(0.7),
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 0),
-                                  materialTapTargetSize:
-                                      MaterialTapTargetSize.shrinkWrap,
-                                ))
-                            .toList(),
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                    child: Text(
-                      widget.arabicText,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                    child: Text(
-                      widget.translationText,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'Add translation (Beta)',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                        Checkbox(
-                          value: _addTranslation,
-                          onChanged: (bool? value) {
-                            setState(() {
-                              _addTranslation = value ?? false;
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
+                  _buildTags(),
+                  _buildArabicText(),
+                  _buildTranslationText(),
+                  _buildAddTranslationCheckbox(),
+                  SizedBox(height: 20),
+                  _buildArtistInfo(),
                 ],
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton(
-              onPressed: _isDownloading ? null : () => _download(context),
-              child: _isDownloading
-                  ? SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        strokeWidth: 2,
-                      ),
-                    )
-                  : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.download, size: 24),
-                        SizedBox(width: 8),
-                        Text(
-                          'Download Wallpaper',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ],
-                    ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.black,
-                foregroundColor: Colors.white,
-                minimumSize: Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(5),
-                ),
-              ),
-            ),
-          )
+          _buildDownloadButton(),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTags() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Center(
+        child: Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8.0,
+          runSpacing: 4.0,
+          children: widget.tags
+              .map((tag) => Chip(
+                    label: Text(tag,
+                        style: TextStyle(fontSize: 12, color: Colors.white)),
+                    backgroundColor: Colors.black.withOpacity(0.7),
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+                    materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ))
+              .toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildArabicText() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+      child: Text(
+        widget.arabicText,
+        textAlign: TextAlign.center,
+        style: TextStyle(color: Colors.grey, fontSize: 16),
+      ),
+    );
+  }
+
+  Widget _buildTranslationText() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: Text(
+        widget.translationText,
+        textAlign: TextAlign.center,
+        style: TextStyle(color: Colors.grey, fontSize: 16),
+      ),
+    );
+  }
+
+  Widget _buildAddTranslationCheckbox() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text('Add translation (Beta)', style: TextStyle(fontSize: 16)),
+          Checkbox(
+            value: _addTranslation,
+            onChanged: (bool? value) {
+              setState(() {
+                _addTranslation = value ?? false;
+              });
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildArtistInfo() {
+    if (_artistDataFuture == null) {
+      return _buildUnknownArtist();
+    }
+
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _artistDataFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return _buildUnknownArtist();
+        } else if (snapshot.hasData) {
+          final artistData = snapshot.data!;
+          return Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircleAvatar(
+                    radius: 40,
+                    backgroundImage: NetworkImage(artistData['picture_url']),
+                  ),
+                  SizedBox(width: 16),
+                  CircleAvatar(
+                    radius: 40,
+                    backgroundImage: NetworkImage(artistData['signature_url']),
+                  ),
+                ],
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Artist: ${artistData['full_name']}',
+                style: TextStyle(color: Colors.white, fontSize: 14),
+              ),
+              SizedBox(height: 8),
+              Text(
+                artistData['summary'] ?? 'No summary available',
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 16),
+              _buildSocialMediaLinks(artistData),
+            ],
+          );
+        } else {
+          return _buildUnknownArtist();
+        }
+      },
+    );
+  }
+
+  Widget _buildUnknownArtist() {
+    return Column(
+      children: [
+        Icon(Icons.account_circle, size: 80, color: Colors.grey),
+        SizedBox(height: 8),
+        Text(
+          'Artist: Unknown',
+          style: TextStyle(color: Colors.white, fontSize: 14),
+        ),
+        SizedBox(height: 8),
+        OutlinedButton(
+          onPressed: () {
+            // TODO: Implement claim artist functionality
+          },
+          child: Text('Claim Artist'),
+          style: OutlinedButton.styleFrom(
+            foregroundColor: Colors.grey,
+            side: BorderSide(color: Colors.grey),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSocialMediaLinks(Map<String, dynamic> artistData) {
+    final socialMedia = artistData['social_media'] as Map<String, dynamic>?;
+    if (socialMedia == null || socialMedia.isEmpty) {
+      return SizedBox.shrink();
+    }
+
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 16,
+      runSpacing: 8,
+      children: socialMedia.entries.map((entry) {
+        IconData icon;
+        switch (entry.key) {
+          case 'facebook':
+            icon = FontAwesomeIcons.facebook;
+            break;
+          case 'youtube':
+            icon = FontAwesomeIcons.youtube;
+            break;
+          case 'instagram':
+            icon = FontAwesomeIcons.instagram;
+            break;
+          default:
+            icon = FontAwesomeIcons.link;
+        }
+        return InkWell(
+          onTap: () {
+            // TODO: Implement link opening functionality
+          },
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 16, color: Colors.grey),
+              SizedBox(width: 4),
+              Text(
+                entry.key,
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildDownloadButton() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: ElevatedButton(
+        onPressed: _isDownloading ? null : () => _download(context),
+        child: _isDownloading
+            ? SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  strokeWidth: 2,
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.download, size: 24),
+                  SizedBox(width: 8),
+                  Text('Download Wallpaper', style: TextStyle(fontSize: 16)),
+                ],
+              ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+          minimumSize: Size(double.infinity, 50),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(5),
+          ),
+        ),
       ),
     );
   }
