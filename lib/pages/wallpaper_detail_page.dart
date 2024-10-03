@@ -430,12 +430,15 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
       runSpacing: 8,
       children: socialMedia.entries.map((entry) {
         IconData icon;
+        String url = entry.value;
         switch (entry.key) {
           case 'facebook':
             icon = FontAwesomeIcons.facebook;
+            url = _processSocialMediaUrl(url, 'https://www.facebook.com');
             break;
           case 'youtube':
             icon = FontAwesomeIcons.youtube;
+            url = _processSocialMediaUrl(url, 'https://www.youtube.com');
             break;
           case 'instagram':
             icon = FontAwesomeIcons.instagram;
@@ -444,9 +447,7 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
             icon = FontAwesomeIcons.link;
         }
         return InkWell(
-          onTap: () {
-            // TODO: Implement link opening functionality
-          },
+          onTap: () => _launchUrl(url),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -461,6 +462,26 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
         );
       }).toList(),
     );
+  }
+
+  String _processSocialMediaUrl(String url, String prefix) {
+    if (url.startsWith('http://')) {
+      url = 'https://' + url.substring(7);
+    }
+    if (!url.startsWith('https://')) {
+      url = 'https://' + url;
+    }
+    if (!url.startsWith(prefix)) {
+      url = prefix + '/' + url.replaceAll(RegExp(r'^https?:\/\/(www\.)?'), '');
+    }
+    return url;
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final Uri _url = Uri.parse(url);
+    if (!await launchUrl(_url)) {
+      throw Exception('Could not launch $_url');
+    }
   }
 
   Widget _buildDownloadButton() {
