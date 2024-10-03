@@ -542,9 +542,9 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
           SizedBox(height: 8),
           OutlinedButton(
             onPressed: () {
-              // TODO: Implement claim artist functionality
+              _launchEmailClient();
             },
-            child: Text('Claim Artist'),
+            child: Text('Tell me who the artist is'),
             style: OutlinedButton.styleFrom(
               foregroundColor: Colors.grey,
               side: BorderSide(color: Colors.grey),
@@ -553,6 +553,38 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _launchEmailClient() async {
+    final String email = 'abdullah.bakhach@gmail.com';
+    final String subject =
+        'I know who the artist is for ${widget.translationText}';
+    final String body =
+        'Dear Mr. Bakhach,\n\nAs a matter of fact I know the artist of the wallpaper ${widget.translationText} (having arabic text ${widget.arabicText}) showing on your app Awsini. Let me give you some more details..';
+
+    final Uri emailLaunchUri = Uri(
+      scheme: 'mailto',
+      path: email,
+      query: encodeQueryParameters({
+        'subject': subject,
+        'body': body,
+      }),
+    );
+
+    if (await canLaunchUrl(emailLaunchUri)) {
+      await launchUrl(emailLaunchUri);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to open email client')),
+      );
+    }
+  }
+
+  String? encodeQueryParameters(Map<String, String> params) {
+    return params.entries
+        .map((e) =>
+            '${Uri.encodeComponent(e.key)}=${Uri.encodeComponent(e.value)}')
+        .join('&');
   }
 
   Widget _buildDownloadSection(bool isDarkMode) {
