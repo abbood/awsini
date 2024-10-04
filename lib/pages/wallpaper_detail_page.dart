@@ -2,7 +2,9 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:awsini/helpers/permission_helper.dart';
+import 'package:awsini/pages/artist_page.dart';
 import 'package:awsini/services/cached_url_fetcher.dart';
+import 'package:awsini/widgets/artist_info_card.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
@@ -282,51 +284,16 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
           return _buildUnknownArtist();
         } else {
           final artistData = snapshot.data!;
-          final isDarkMode = Theme.of(context).brightness == Brightness.dark;
-          final hasSignature = artistData['signature_url'] != null &&
-              artistData['signature_url'].toString().trim().isNotEmpty;
-
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircleAvatar(
-                    radius: 40,
-                    backgroundImage: NetworkImage(artistData['picture_url']),
-                  ),
-                  if (hasSignature) ...[
-                    SizedBox(width: 16),
-                    CircleAvatar(
-                      radius: 40,
-                      backgroundImage:
-                          NetworkImage(artistData['signature_url']),
-                    ),
-                  ],
-                ],
-              ),
-              SizedBox(height: 16),
-              Text(
-                'Artist: ${artistData['full_name']}',
-                style: TextStyle(
-                  color: isDarkMode ? Colors.white : Colors.black87,
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
+          return ArtistInfoCard(
+            artistData: artistData,
+            onViewWallpapers: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ArtistPage(artistId: widget.artistId!),
                 ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                artistData['summary'] ?? 'No summary available',
-                style: TextStyle(
-                  color: isDarkMode ? Colors.grey[300] : Colors.grey[700],
-                  fontSize: 14,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              SizedBox(height: 16),
-              _buildSocialMediaLinks(artistData),
-            ],
+              );
+            },
           );
         }
       },

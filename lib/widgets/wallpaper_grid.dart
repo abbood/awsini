@@ -1,19 +1,21 @@
-import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:awsini/pages/wallpaper_detail_page.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/material.dart';
 
 class WallpaperGrid extends StatelessWidget {
   final List<Map<String, dynamic>> wallpapers;
-  final Function(String) toggleFavorite;
-  final Set<String> favorites;
+  final Function(String)? toggleFavorite;
+  final Set<String>? favorites;
   final bool isLoading;
+  final Function(Map<String, dynamic>)? onTap;
 
   const WallpaperGrid({
     Key? key,
     required this.wallpapers,
-    required this.toggleFavorite,
-    required this.favorites,
+    this.toggleFavorite,
+    this.favorites,
     this.isLoading = false,
+    this.onTap,
   }) : super(key: key);
 
   @override
@@ -21,11 +23,9 @@ class WallpaperGrid extends StatelessWidget {
     if (isLoading) {
       return Center(child: CircularProgressIndicator());
     }
-
     if (wallpapers.isEmpty) {
       return Center(child: Text('No wallpapers available'));
     }
-
     return GridView.builder(
       padding: EdgeInsets.all(8),
       gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -43,22 +43,25 @@ class WallpaperGrid extends StatelessWidget {
                 .where((tag) => tag.isNotEmpty)
                 .toList() ??
             [];
-
         return GestureDetector(
           onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => WallpaperDetailPage(
-                  rawVectorUrl: wallpaper['vector_file'],
-                  rawDetailUrl: wallpaper['detail_file'],
-                  translationText: wallpaper['translation'],
-                  arabicText: wallpaper['ar'],
-                  tags: tags,
-                  artistId: wallpaper['artist_id'],
+            if (onTap != null) {
+              onTap!(wallpaper);
+            } else {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => WallpaperDetailPage(
+                    rawVectorUrl: wallpaper['vector_file'],
+                    rawDetailUrl: wallpaper['detail_file'],
+                    translationText: wallpaper['translation'],
+                    arabicText: wallpaper['ar'],
+                    tags: tags,
+                    artistId: wallpaper['artist_id'],
+                  ),
                 ),
-              ),
-            );
+              );
+            }
           },
           child: Stack(
             fit: StackFit.expand,
@@ -79,14 +82,15 @@ class WallpaperGrid extends StatelessWidget {
                   children: tags.map((tag) => _buildTagChip(tag)).toList(),
                 ),
               ),
-              Positioned(
-                bottom: 8,
-                right: 8,
-                child: GestureDetector(
-                  onTap: () => toggleFavorite(wallpaper['id']),
-                  child: _buildFavoriteIcon(wallpaper['id']),
+              if (toggleFavorite != null && favorites != null)
+                Positioned(
+                  bottom: 8,
+                  right: 8,
+                  child: GestureDetector(
+                    onTap: () => toggleFavorite!(wallpaper['id']),
+                    child: _buildFavoriteIcon(wallpaper['id']),
+                  ),
                 ),
-              ),
             ],
           ),
         );
@@ -117,7 +121,7 @@ class WallpaperGrid extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       child: Icon(
-        favorites.contains(id) ? Icons.favorite : Icons.favorite_border,
+        favorites!.contains(id) ? Icons.favorite : Icons.favorite_border,
         color: Colors.white,
         size: 24,
       ),
