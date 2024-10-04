@@ -1,6 +1,5 @@
-import 'package:awsini/pages/wallpaper_detail_page.dart';
 import 'package:awsini/services/cached_url_fetcher.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:awsini/widgets/wallpaper_grid.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -94,110 +93,12 @@ class _FavoritesPageState extends State<FavoritesPage> {
       appBar: AppBar(
         title: Text('Favorites'),
       ),
-      body: isLoading
-          ? Center(child: CircularProgressIndicator())
-          : favoriteWallpapers.isEmpty
-              ? Center(child: Text('No favorites yet'))
-              : GridView.builder(
-                  padding: EdgeInsets.all(8),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 9 / 16,
-                  ),
-                  itemCount: favoriteWallpapers.length,
-                  itemBuilder: (context, index) {
-                    List<String> tags = [];
-                    if (favoriteWallpapers[index]['tags'] != null) {
-                      tags = (favoriteWallpapers[index]['tags'] as String)
-                          .split(',')
-                          .map((tag) => tag.trim())
-                          .where((tag) => tag.isNotEmpty)
-                          .toList();
-                    }
-
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => WallpaperDetailPage(
-                                rawVectorUrl: favoriteWallpapers[index]
-                                    ['vector_file'],
-                                rawDetailUrl: favoriteWallpapers[index]
-                                    ['detail_file'],
-                                translationText: favoriteWallpapers[index]
-                                    ['translation'],
-                                arabicText: favoriteWallpapers[index]['ar'],
-                                tags: tags),
-                          ),
-                        );
-                      },
-                      child: Stack(
-                        fit: StackFit.expand,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(8),
-                            child: CachedNetworkImage(
-                              imageUrl: favoriteWallpapers[index]
-                                  ['thumbnail_file'],
-                              fit: BoxFit.cover,
-                              errorWidget: (context, url, error) =>
-                                  Icon(Icons.error),
-                            ),
-                          ),
-                          Positioned(
-                            top: 8,
-                            right: 8,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: tags
-                                  .map((tag) => Padding(
-                                        padding: EdgeInsets.only(bottom: 4),
-                                        child: Chip(
-                                          label: Text(
-                                            tag,
-                                            style: TextStyle(
-                                                fontSize: 10,
-                                                color: Colors.white),
-                                          ),
-                                          backgroundColor:
-                                              Colors.black.withOpacity(0.7),
-                                          padding: EdgeInsets.symmetric(
-                                              horizontal: 8, vertical: 0),
-                                          materialTapTargetSize:
-                                              MaterialTapTargetSize.shrinkWrap,
-                                        ),
-                                      ))
-                                  .toList(),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 8,
-                            right: 8,
-                            child: GestureDetector(
-                              onTap: () => toggleFavorite(
-                                  favoriteWallpapers[index]['id']),
-                              child: Container(
-                                padding: EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.black.withOpacity(0.5),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(
-                                  Icons.favorite,
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
+      body: WallpaperGrid(
+        wallpapers: favoriteWallpapers,
+        toggleFavorite: toggleFavorite,
+        favorites: favorites,
+        isLoading: isLoading,
+      ),
     );
   }
 }
