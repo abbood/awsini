@@ -2,12 +2,33 @@ import 'dart:async';
 
 import 'package:awsini/pages/licenses_page.dart';
 import 'package:flutter/material.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/theme_provider.dart';
 
-class AccountPage extends StatelessWidget {
+class AccountPage extends StatefulWidget {
+  @override
+  _AccountPageState createState() => _AccountPageState();
+}
+
+class _AccountPageState extends State<AccountPage> {
+  String _version = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _getAppVersion();
+  }
+
+  Future<void> _getAppVersion() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    setState(() {
+      _version = packageInfo.version;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -16,6 +37,7 @@ class AccountPage extends StatelessWidget {
         children: [
           _buildSettingsSection(context),
           _buildAboutSection(context),
+          _buildVersionSection(context),
         ],
       ),
     );
@@ -96,7 +118,28 @@ class AccountPage extends StatelessWidget {
         ),
         ListTile(
           title: Text('Licenses'),
-          onTap: () => Navigator.of(context).push(SlideUpRoute(page: LicensesPage())),        
+          onTap: () =>
+              Navigator.of(context).push(SlideUpRoute(page: LicensesPage())),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildVersionSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ListTile(
+          title: Text(
+            'Version',
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+          ),
+        ),
+        ListTile(
+          title: Text('App Version'),
+          trailing: Text(_version),
         ),
       ],
     );
