@@ -1,7 +1,7 @@
 name: awsini
 description: "A new Flutter project."
 publish_to: 'none'
-version: 0.0.006
+version: 0.1.100
 
 environment:
   sdk: '>=3.4.4 <4.0.0'
