@@ -1,13 +1,14 @@
 import 'package:awsini/pages/wallpaper_detail_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:skeletonizer/skeletonizer.dart';
 
-class WallpaperGrid extends StatelessWidget {
+class WallpaperGrid extends StatefulWidget {
   final List<Map<String, dynamic>> wallpapers;
   final Function(String)? toggleFavorite;
   final Set<String>? favorites;
   final bool isLoading;
-  final Function(Map<String, dynamic>)? onTap;
+  final bool showSearchBar;
 
   const WallpaperGrid({
     Key? key,
@@ -15,86 +16,183 @@ class WallpaperGrid extends StatelessWidget {
     this.toggleFavorite,
     this.favorites,
     this.isLoading = false,
-    this.onTap,
+    this.showSearchBar = false,
   }) : super(key: key);
 
   @override
+  _WallpaperGridState createState() => _WallpaperGridState();
+}
+
+class _WallpaperGridState extends State<WallpaperGrid> {
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  List<Map<String, dynamic>> _filteredWallpapers = [];
+  bool _isSearching = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _filteredWallpapers = widget.wallpapers;
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
+  void didUpdateWidget(WallpaperGrid oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.wallpapers != oldWidget.wallpapers) {
+      _filteredWallpapers = widget.wallpapers;
+      _onSearchChanged();
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.removeListener(_onSearchChanged);
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _onSearchChanged() {
+    final searchText = _searchController.text.toLowerCase();
+    setState(() {
+      _isSearching = searchText.length >= 3;
+      if (_isSearching) {
+        _filteredWallpapers = widget.wallpapers.where((wallpaper) {
+          final ar = wallpaper['ar'].toString().toLowerCase();
+          final translation = wallpaper['translation'].toString().toLowerCase();
+          return ar.contains(searchText) || translation.contains(searchText);
+        }).toList();
+      } else {
+        _filteredWallpapers = widget.wallpapers;
+      }
+    });
+  }
+
+  void _clearSearch() {
+    setState(() {
+      _searchController.clear();
+      _filteredWallpapers = widget.wallpapers;
+      _isSearching = false;
+    });
+    _searchFocusNode.unfocus();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return Center(child: CircularProgressIndicator());
-    }
-    if (wallpapers.isEmpty) {
-      return Center(child: Text('No wallpapers available'));
-    }
-    return GridView.builder(
-      padding: EdgeInsets.all(8),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-        childAspectRatio: 9 / 16,
-      ),
-      itemCount: wallpapers.length,
-      itemBuilder: (context, index) {
-        final wallpaper = wallpapers[index];
-        final List<String> tags = (wallpaper['tags'] as String?)
-                ?.split(',')
-                .map((tag) => tag.trim())
-                .where((tag) => tag.isNotEmpty)
-                .toList() ??
-            [];
-        return GestureDetector(
-          onTap: () {
-            if (onTap != null) {
-              onTap!(wallpaper);
-            } else {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => WallpaperDetailPage(
-                    rawVectorUrl: wallpaper['vector_file'],
-                    rawDetailUrl: wallpaper['detail_file'],
-                    translationText: wallpaper['translation'],
-                    arabicText: wallpaper['ar'],
-                    tags: tags,
-                    artistId: wallpaper['artist_id'],
-                  ),
-                ),
-              );
-            }
-          },
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: CachedNetworkImage(
-                  imageUrl: wallpaper['thumbnail_file'],
-                  fit: BoxFit.cover,
-                  errorWidget: (context, url, error) => Icon(Icons.error),
+    return Column(
+      children: [
+        if (widget.showSearchBar)
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              focusNode: _searchFocusNode,
+              decoration: InputDecoration(
+                hintText: 'Search wallpapers...',
+                prefixIcon: Icon(Icons.search),
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(Icons.clear),
+                        onPressed: _clearSearch,
+                      )
+                    : null,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
                 ),
               ),
-              Positioned(
-                top: 8,
-                right: 8,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: tags.map((tag) => _buildTagChip(tag)).toList(),
-                ),
-              ),
-              if (toggleFavorite != null && favorites != null)
-                Positioned(
-                  bottom: 8,
-                  right: 8,
-                  child: GestureDetector(
-                    onTap: () => toggleFavorite!(wallpaper['id']),
-                    child: _buildFavoriteIcon(wallpaper['id']),
-                  ),
-                ),
-            ],
+            ),
           ),
-        );
-      },
+        Expanded(
+          child: NotificationListener<ScrollNotification>(
+            onNotification: (scrollNotification) {
+              if (scrollNotification is ScrollStartNotification) {
+                _searchFocusNode.unfocus();
+              }
+              return true;
+            },
+            child: Skeletonizer(
+              enabled: widget.isLoading,
+              child: GridView.builder(
+                padding: EdgeInsets.all(8),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: 9 / 16,
+                ),
+                itemCount: _filteredWallpapers.length,
+                itemBuilder: (context, index) {
+                  final wallpaper = _filteredWallpapers[index];
+                  final List<String> tags = (wallpaper['tags'] as String?)
+                          ?.split(',')
+                          .map((tag) => tag.trim())
+                          .where((tag) => tag.isNotEmpty)
+                          .toList() ??
+                      [];
+
+                  return GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => WallpaperDetailPage(
+                            rawVectorUrl: wallpaper['vector_file'],
+                            rawDetailUrl: wallpaper['detail_file'],
+                            translationText: wallpaper['translation'],
+                            arabicText: wallpaper['ar'],
+                            tags: tags,
+                            artistId: wallpaper['artist_id'],
+                          ),
+                        ),
+                      );
+                    },
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Skeleton.replace(
+                            child: CachedNetworkImage(
+                              imageUrl: wallpaper['thumbnail_file'],
+                              fit: BoxFit.cover,
+                              placeholder: (context, url) => Container(
+                                color: Colors.grey[300],
+                              ),
+                              errorWidget: (context, url, error) =>
+                                  Icon(Icons.error),
+                            ),
+                          ),
+                        ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children:
+                                tags.map((tag) => _buildTagChip(tag)).toList(),
+                          ),
+                        ),
+                        if (widget.toggleFavorite != null &&
+                            widget.favorites != null)
+                          Positioned(
+                            bottom: 8,
+                            right: 8,
+                            child: GestureDetector(
+                              onTap: () =>
+                                  widget.toggleFavorite!(wallpaper['id']),
+                              child: _buildFavoriteIcon(wallpaper['id']),
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -121,7 +219,7 @@ class WallpaperGrid extends StatelessWidget {
         shape: BoxShape.circle,
       ),
       child: Icon(
-        favorites!.contains(id) ? Icons.favorite : Icons.favorite_border,
+        widget.favorites!.contains(id) ? Icons.favorite : Icons.favorite_border,
         color: Colors.white,
         size: 24,
       ),

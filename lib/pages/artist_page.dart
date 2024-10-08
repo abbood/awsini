@@ -1,4 +1,3 @@
-import 'package:awsini/pages/wallpaper_detail_page.dart';
 import 'package:awsini/services/cached_url_fetcher.dart';
 import 'package:awsini/widgets/artist_info_card.dart';
 import 'package:awsini/widgets/wallpaper_grid.dart';
@@ -106,21 +105,6 @@ class _ArtistPageState extends State<ArtistPage> {
                 } else {
                   return WallpaperGrid(
                     wallpapers: snapshot.data!,
-                    onTap: (wallpaper) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => WallpaperDetailPage(
-                            rawVectorUrl: wallpaper['vector_file'],
-                            rawDetailUrl: wallpaper['detail_file'],
-                            translationText: wallpaper['translation'],
-                            arabicText: wallpaper['ar'],
-                            tags: (wallpaper['tags'] as String).split(','),
-                            artistId: widget.artistId,
-                          ),
-                        ),
-                      );
-                    },
                     // We're not handling favorites on this page, so we don't pass toggleFavorite and favorites
                   );
                 }

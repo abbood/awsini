@@ -132,6 +132,7 @@ class _ExplorePageState extends State<ExplorePage> {
         child: Stack(
           children: [
             WallpaperGrid(
+              showSearchBar: true,
               wallpapers: wallpapers,
               toggleFavorite: toggleFavorite,
               favorites: favorites,
