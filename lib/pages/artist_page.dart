@@ -1,3 +1,5 @@
+import 'package:awsini/helpers/wallpaper_helpers.dart';
+import 'package:awsini/models/wallpaper.dart';
 import 'package:awsini/services/cached_url_fetcher.dart';
 import 'package:awsini/widgets/artist_info_card.dart';
 import 'package:awsini/widgets/wallpaper_grid.dart';
@@ -15,7 +17,7 @@ class ArtistPage extends StatefulWidget {
 
 class _ArtistPageState extends State<ArtistPage> {
   late Future<Map<String, dynamic>> _artistDataFuture;
-  late Future<List<Map<String, dynamic>>> _wallpapersFuture;
+  late Future<List<Wallpaper>> _wallpapersFuture;
 
   @override
   void initState() {
@@ -49,7 +51,7 @@ class _ArtistPageState extends State<ArtistPage> {
     }
   }
 
-  Future<List<Map<String, dynamic>>> _fetchArtistWallpapers() async {
+  Future<List<Wallpaper>> _fetchArtistWallpapers() async {
     final wallpaperSnapshot = await FirebaseFirestore.instance
         .collection('wallpapers')
         .where('artist_id', isEqualTo: widget.artistId)
@@ -59,11 +61,31 @@ class _ArtistPageState extends State<ArtistPage> {
       final data = doc.data();
       final thumbnailUrl =
           await CachedUrlFetcher.getImageUrl(data['thumbnail_file'] ?? '');
-      return {
-        ...data,
-        'id': doc.id,
-        'thumbnail_file': thumbnailUrl,
-      };
+
+      List<String> tags;
+      if (data['tags'] is String) {
+        tags = (data['tags'] as String)
+            .split(',')
+            .map((e) => e.trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      } else if (data['tags'] is List) {
+        tags = List<String>.from(data['tags']);
+      } else {
+        tags = [];
+      }
+
+      return Wallpaper(
+        id: doc.id,
+        thumbnailFile: thumbnailUrl,
+        vectorFile: data['vector_file'] ?? '',
+        detailFile: data['detail_file'] ?? '',
+        translation: data['translation'] ?? '',
+        artistId: data['artist_id'],
+        ar: data['ar'] ?? '',
+        tags: tags,
+        variations: WallpaperHelpers.parseVariations(data['variations']),
+      );
     }));
   }
 
@@ -93,7 +115,7 @@ class _ArtistPageState extends State<ArtistPage> {
             },
           ),
           Expanded(
-            child: FutureBuilder<List<Map<String, dynamic>>>(
+            child: FutureBuilder<List<Wallpaper>>(
               future: _wallpapersFuture,
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {

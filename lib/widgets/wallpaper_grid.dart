@@ -1,10 +1,11 @@
+import 'package:awsini/models/wallpaper.dart';
 import 'package:awsini/pages/wallpaper_detail_page.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:skeletonizer/skeletonizer.dart';
 
 class WallpaperGrid extends StatefulWidget {
-  final List<Map<String, dynamic>> wallpapers;
+  final List<Wallpaper> wallpapers;
   final Function(String)? toggleFavorite;
   final Set<String>? favorites;
   final bool isLoading;
@@ -26,7 +27,7 @@ class WallpaperGrid extends StatefulWidget {
 class _WallpaperGridState extends State<WallpaperGrid> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
-  List<Map<String, dynamic>> _filteredWallpapers = [];
+  List<Wallpaper> _filteredWallpapers = [];
   bool _isSearching = false;
 
   @override
@@ -59,9 +60,9 @@ class _WallpaperGridState extends State<WallpaperGrid> {
       _isSearching = searchText.length >= 3;
       if (_isSearching) {
         _filteredWallpapers = widget.wallpapers.where((wallpaper) {
-          final ar = wallpaper['ar'].toString().toLowerCase();
-          final translation = wallpaper['translation'].toString().toLowerCase();
-          final tags = (wallpaper['tags'] as String?)
+          final ar = wallpaper.ar.toString().toLowerCase();
+          final translation = wallpaper.translation.toString().toLowerCase();
+          final tags = (wallpaper.tags as String?)
                   ?.split(',')
                   .map((tag) => tag.trim().toLowerCase())
                   .where((tag) => tag.isNotEmpty)
@@ -135,26 +136,15 @@ class _WallpaperGridState extends State<WallpaperGrid> {
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
                     final wallpaper = _filteredWallpapers[index];
-                    final List<String> tags = (wallpaper['tags'] as String?)
-                            ?.split(',')
-                            .map((tag) => tag.trim())
-                            .where((tag) => tag.isNotEmpty)
-                            .toList() ??
-                        [];
+                    final List<String> tags =  wallpaper.tags;
 
                     return GestureDetector(
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => WallpaperDetailPage(
-                              rawVectorUrl: wallpaper['vector_file'],
-                              rawDetailUrl: wallpaper['detail_file'],
-                              translationText: wallpaper['translation'],
-                              arabicText: wallpaper['ar'],
-                              tags: tags,
-                              artistId: wallpaper['artist_id'],
-                            ),
+                            builder: (context) =>
+                                WallpaperDetailPage(wallpaper: wallpaper),
                           ),
                         );
                       },
@@ -164,7 +154,7 @@ class _WallpaperGridState extends State<WallpaperGrid> {
                           ClipRRect(
                             borderRadius: BorderRadius.circular(8),
                             child: CachedNetworkImage(
-                              imageUrl: wallpaper['thumbnail_file'],
+                              imageUrl: wallpaper.thumbnailFile,
                               fit: BoxFit.cover,
                               placeholder: (context, url) => Container(
                                 color: Colors.grey[300],
@@ -190,8 +180,8 @@ class _WallpaperGridState extends State<WallpaperGrid> {
                               right: 8,
                               child: GestureDetector(
                                 onTap: () =>
-                                    widget.toggleFavorite!(wallpaper['id']),
-                                child: _buildFavoriteIcon(wallpaper['id']),
+                                    widget.toggleFavorite!(wallpaper.id),
+                                child: _buildFavoriteIcon(wallpaper.id),
                               ),
                             ),
                         ],

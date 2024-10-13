@@ -1,3 +1,5 @@
+import 'package:awsini/helpers/wallpaper_helpers.dart';
+import 'package:awsini/models/wallpaper.dart';
 import 'package:awsini/services/cached_url_fetcher.dart';
 import 'package:awsini/widgets/wallpaper_grid.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -10,7 +12,7 @@ class FavoritesPage extends StatefulWidget {
 }
 
 class _FavoritesPageState extends State<FavoritesPage> {
-  List<Map<String, dynamic>> favoriteWallpapers = [];
+  List<Wallpaper> favoriteWallpapers = [];
   bool isLoading = true;
   Set<String> favorites = {};
 
@@ -40,26 +42,33 @@ class _FavoritesPageState extends State<FavoritesPage> {
           .where('id', whereIn: favorites.toList())
           .get();
 
-      List<Map<String, dynamic>> fetchedWallpapers = [];
+      List<Wallpaper> fetchedWallpapers = [];
 
       for (var doc in snapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
         String thumbnailUrl =
             await CachedUrlFetcher.getImageUrl(data['thumbnail_file'] ?? '');
-        String vectorUrl =
-            await CachedUrlFetcher.getImageUrl(data['vector_file'] ?? '');
-        String detailUrl =
-            await CachedUrlFetcher.getImageUrl(data['detail_file'] ?? '');
 
-        fetchedWallpapers.add({
-          'id': data['id'] ?? '',
-          'thumbnail_file': thumbnailUrl,
-          'vector_file': vectorUrl,
-          'detail_file': detailUrl,
-          'translation': data['translation'] ?? '',
-          'ar': data['ar'] ?? '',
-          'tags': data['tags'] ?? '',
-        });
+        List<String> tags;
+        if (data['tags'] is String) {
+          tags = (data['tags'] as String).split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+        } else if (data['tags'] is List) {
+          tags = List<String>.from(data['tags']);
+        } else {
+          tags = [];
+        }
+
+        fetchedWallpapers.add(Wallpaper(
+          id: doc.id,
+          thumbnailFile: thumbnailUrl,
+          vectorFile: data['vector_file'] ?? '',
+          detailFile: data['detail_file'] ?? '',
+          translation: data['translation'] ?? '',
+          artistId: data['artist_id'],
+          ar: data['ar'] ?? '',
+          tags: tags, 
+          variations: WallpaperHelpers.parseVariations(data['variations']),
+        ));
       }
 
       setState(() {
@@ -78,7 +87,7 @@ class _FavoritesPageState extends State<FavoritesPage> {
     setState(() {
       if (favorites.contains(id)) {
         favorites.remove(id);
-        favoriteWallpapers.removeWhere((wallpaper) => wallpaper['id'] == id);
+        favoriteWallpapers.removeWhere((wallpaper) => wallpaper.id == id);
       } else {
         favorites.add(id);
       }

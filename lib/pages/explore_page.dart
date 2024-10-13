@@ -1,4 +1,5 @@
-import 'package:awsini/models/walllpaper.dart';
+import 'package:awsini/helpers/wallpaper_helpers.dart';
+import 'package:awsini/models/wallpaper.dart';
 import 'package:awsini/services/cached_url_fetcher.dart';
 import 'package:awsini/widgets/wallpaper_grid.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -49,13 +50,17 @@ class _ExplorePageState extends State<ExplorePage> {
 
   Future<void> fetchWallpapers() async {
     for (int i = 0; i < 10; i++) {
-      wallpapers.add({
-        'id': BoneMock.name,
-        'thumbnail_file': BoneMock.chars(30),
-        'vector_file': BoneMock.chars(30),
-        'detail_file': BoneMock.chars(30),
-        'translation': BoneMock.chars(30),
-      } as Wallpaper);
+      wallpapers.add(Wallpaper(
+        id: BoneMock.name,
+        thumbnailFile: BoneMock.chars(30),
+        vectorFile: BoneMock.chars(30),
+        detailFile: BoneMock.chars(30),
+        translation: BoneMock.chars(30),
+        ar: BoneMock.chars(20),
+        artistId: BoneMock.name,
+        tags: [BoneMock.name, BoneMock.name],
+        variations: null,
+      ));
     }
 
     try {
@@ -89,6 +94,15 @@ class _ExplorePageState extends State<ExplorePage> {
         String thumbnailUrl =
             await CachedUrlFetcher.getImageUrl(data['thumbnail_file'] ?? '');
 
+        List<String> tags;
+        if (data['tags'] is String) {
+          tags = (data['tags'] as String).split(',').map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+        } else if (data['tags'] is List) {
+          tags = List<String>.from(data['tags']);
+        } else {
+          tags = [];
+        }
+
         fetchedWallpapers.add(Wallpaper(
           id: doc.id,
           thumbnailFile: thumbnailUrl,
@@ -97,8 +111,8 @@ class _ExplorePageState extends State<ExplorePage> {
           translation: data['translation'] ?? '',
           artistId: data['artist_id'],
           ar: data['ar'] ?? '',
-          tags: List<String>.from(data['tags'] ?? []),
-          variations: _parseVariations(data['variations']),
+          tags: tags, 
+          variations: WallpaperHelpers.parseVariations(data['variations']),
         ));
       }
 
@@ -112,24 +126,6 @@ class _ExplorePageState extends State<ExplorePage> {
         isLoading = false;
       });
     }
-  }
-
-  Map<String, WallpaperVariation>? _parseVariations(dynamic variationsData) {
-    if (variationsData == null || variationsData is! Map) {
-      return null;
-    }
-
-    Map<String, WallpaperVariation> variations = {};
-    variationsData.forEach((key, value) {
-      if (value is Map<String, dynamic>) {
-        variations[key] = WallpaperVariation(
-          detail: value['detail'] ?? '',
-          vector: value['vector'] ?? '',
-        );
-      }
-    });
-
-    return variations.isNotEmpty ? variations : null;
   }
 
   Future<String> getImageUrl(String imagePath) async {

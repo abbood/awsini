@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:awsini/helpers/permission_helper.dart';
+import 'package:awsini/models/wallpaper.dart';
 import 'package:awsini/pages/artist_page.dart';
 import 'package:awsini/services/cached_url_fetcher.dart';
 import 'package:awsini/widgets/artist_info_card.dart';
@@ -16,21 +17,9 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class WallpaperDetailPage extends StatefulWidget {
-  final String rawVectorUrl;
-  final String rawDetailUrl;
-  final String translationText;
-  final String arabicText;
-  final String? artistId;
-  final List<String> tags;
+  final Wallpaper wallpaper;
 
-  WallpaperDetailPage({
-    required this.rawVectorUrl,
-    required this.rawDetailUrl,
-    required this.translationText,
-    required this.arabicText,
-    required this.tags,
-    this.artistId,
-  });
+  WallpaperDetailPage({required this.wallpaper});
 
   @override
   _WallpaperDetailPageState createState() => _WallpaperDetailPageState();
@@ -43,12 +32,14 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
   late Future<String> _svgFuture;
   bool _isDownloading = false;
   Future<Map<String, dynamic>>? _artistDataFuture;
+  String? _selectedVariation;
 
   @override
   void initState() {
     super.initState();
-    _detailUrlFuture = CachedUrlFetcher.getImageUrl(widget.rawDetailUrl);
-    if (widget.artistId != null) {
+    _detailUrlFuture =
+        CachedUrlFetcher.getImageUrl(widget.wallpaper.detailFile);
+    if (widget.wallpaper.artistId != null) {
       _artistDataFuture = _fetchArtistData();
     }
   }
@@ -57,7 +48,7 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
     try {
       final artistDoc = await FirebaseFirestore.instance
           .collection('artists')
-          .doc(widget.artistId)
+          .doc(widget.wallpaper.artistId)
           .get();
 
       if (artistDoc.exists) {
@@ -133,7 +124,10 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
         photoStatus, storageStatus)) {
       debugPrint('All permissions granted, proceeding with download');
       try {
-        _vectorUrl ??= await CachedUrlFetcher.getImageUrl(widget.rawVectorUrl);
+        String vectorFile = _selectedVariation != null
+            ? widget.wallpaper.variations![_selectedVariation]!.vector
+            : widget.wallpaper.vectorFile;
+        _vectorUrl ??= await CachedUrlFetcher.getImageUrl(vectorFile);
         // Get screen size
         final Size screenSize = MediaQuery.of(context).size;
         final double pixelRatio = MediaQuery.of(context).devicePixelRatio;
@@ -168,7 +162,7 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
         if (_addTranslation) {
           final textPainter = TextPainter(
             text: TextSpan(
-              text: widget.translationText,
+              text: widget.wallpaper.translation,
               style: TextStyle(color: Colors.grey, fontSize: 50),
             ),
             textDirection: TextDirection.ltr,
@@ -290,7 +284,8 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => ArtistPage(artistId: widget.artistId!),
+                  builder: (context) =>
+                      ArtistPage(artistId: widget.wallpaper.artistId!),
                 ),
               );
             },
@@ -451,7 +446,7 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
           alignment: WrapAlignment.center,
           spacing: 8.0,
           runSpacing: 4.0,
-          children: widget.tags
+          children: widget.wallpaper.tags
               .map((tag) => Chip(
                     label: Text(tag,
                         style: TextStyle(fontSize: 12, color: Colors.white)),
@@ -467,7 +462,7 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
 
   Widget _buildArabicText() {
     return Text(
-      widget.arabicText,
+      widget.wallpaper.ar,
       textAlign: TextAlign.center,
       style: TextStyle(
         color: Theme.of(context).brightness == Brightness.dark
@@ -480,7 +475,7 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
 
   Widget _buildTranslationText() {
     return Text(
-      widget.translationText,
+      widget.wallpaper.translation,
       textAlign: TextAlign.center,
       style: TextStyle(
         color: Theme.of(context).brightness == Brightness.dark
@@ -525,9 +520,9 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
   Future<void> _launchEmailClient() async {
     final String email = 'abdullah.bakhach@gmail.com';
     final String subject =
-        'I know who the artist is for ${widget.translationText}';
+        'I know who the artist is for ${widget.wallpaper.translation}';
     final String body =
-        'Dear Mr. Bakhach,\n\nAs a matter of fact I know the artist of the wallpaper ${widget.translationText} (having arabic text ${widget.arabicText}) showing on your app Awsini. Let me give you some more details..';
+        'Dear Mr. Bakhach,\n\nAs a matter of fact I know the artist of the wallpaper ${widget.wallpaper.translation} (having arabic text ${widget.wallpaper.ar}) showing on your app Awsini. Let me give you some more details..';
 
     final Uri emailLaunchUri = Uri(
       scheme: 'mailto',
