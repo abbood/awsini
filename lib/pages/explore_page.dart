@@ -1,3 +1,4 @@
+import 'package:awsini/models/walllpaper.dart';
 import 'package:awsini/services/cached_url_fetcher.dart';
 import 'package:awsini/widgets/wallpaper_grid.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -12,7 +13,7 @@ class ExplorePage extends StatefulWidget {
 }
 
 class _ExplorePageState extends State<ExplorePage> {
-  List<Map<String, dynamic>> wallpapers = [];
+  List<Wallpaper> wallpapers = [];
   bool isLoading = true;
   Set<String> favorites = {};
 
@@ -54,7 +55,7 @@ class _ExplorePageState extends State<ExplorePage> {
         'vector_file': BoneMock.chars(30),
         'detail_file': BoneMock.chars(30),
         'translation': BoneMock.chars(30),
-      });
+      } as Wallpaper);
     }
 
     try {
@@ -81,23 +82,24 @@ class _ExplorePageState extends State<ExplorePage> {
         await prefs.setInt('last_wallpaper_fetch', newestTimestamp);
       }
 
-      List<Map<String, dynamic>> fetchedWallpapers = [];
+      List<Wallpaper> fetchedWallpapers = [];
 
       for (var doc in snapshot.docs) {
         final data = doc.data() as Map<String, dynamic>;
         String thumbnailUrl =
             await CachedUrlFetcher.getImageUrl(data['thumbnail_file'] ?? '');
 
-        fetchedWallpapers.add({
-          'id': data['id'] ?? '',
-          'thumbnail_file': thumbnailUrl,
-          'vector_file': data['vector_file'] ?? '',
-          'detail_file': data['detail_file'] ?? '',
-          'translation': data['translation'] ?? '',
-          'artist_id': data['artist_id'] ?? null,
-          'ar': data['ar'] ?? '',
-          'tags': data['tags'] ?? '',
-        });
+        fetchedWallpapers.add(Wallpaper(
+          id: doc.id,
+          thumbnailFile: thumbnailUrl,
+          vectorFile: data['vector_file'] ?? '',
+          detailFile: data['detail_file'] ?? '',
+          translation: data['translation'] ?? '',
+          artistId: data['artist_id'],
+          ar: data['ar'] ?? '',
+          tags: List<String>.from(data['tags'] ?? []),
+          variations: _parseVariations(data['variations']),
+        ));
       }
 
       setState(() {
@@ -110,6 +112,24 @@ class _ExplorePageState extends State<ExplorePage> {
         isLoading = false;
       });
     }
+  }
+
+  Map<String, WallpaperVariation>? _parseVariations(dynamic variationsData) {
+    if (variationsData == null || variationsData is! Map) {
+      return null;
+    }
+
+    Map<String, WallpaperVariation> variations = {};
+    variationsData.forEach((key, value) {
+      if (value is Map<String, dynamic>) {
+        variations[key] = WallpaperVariation(
+          detail: value['detail'] ?? '',
+          vector: value['vector'] ?? '',
+        );
+      }
+    });
+
+    return variations.isNotEmpty ? variations : null;
   }
 
   Future<String> getImageUrl(String imagePath) async {
