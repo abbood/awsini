@@ -33,6 +33,7 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
   bool _isDownloading = false;
   Future<Map<String, dynamic>>? _artistDataFuture;
   String? _selectedVariation;
+  late Future<Map<String, String>> _variationThumbnailsFuture;
 
   @override
   void initState() {
@@ -42,6 +43,21 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
     if (widget.wallpaper.artistId != null) {
       _artistDataFuture = _fetchArtistData();
     }
+    _variationThumbnailsFuture = _fetchVariationThumbnails();
+  }
+
+  Future<Map<String, String>> _fetchVariationThumbnails() async {
+    Map<String, String> thumbnails = {};
+    if (widget.wallpaper.variations != null) {
+      for (var entry in widget.wallpaper.variations!.entries) {
+        String thumbnailUrl = await CachedUrlFetcher.getImageUrl(
+          entry.value.detail,
+          folder: widget.wallpaper.id,
+        );
+        thumbnails[entry.key] = thumbnailUrl;
+      }
+    }
+    return thumbnails;
   }
 
   Future<Map<String, dynamic>> _fetchArtistData() async {
@@ -246,6 +262,7 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildWallpaperImage(),
+                  _buildVariationThumbnails(),
                   ChakraCard(child: _buildWallpaperMetadata()),
                   ChakraCard(child: _buildArtistInfo()),
                 ],
@@ -254,6 +271,100 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
           ),
           _buildDownloadSection(isDarkMode),
         ],
+      ),
+    );
+  }
+
+  Widget _buildVariationThumbnails() {
+    return FutureBuilder<Map<String, String>>(
+      future: _variationThumbnailsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError ||
+            !snapshot.hasData ||
+            snapshot.data!.isEmpty) {
+          return SizedBox
+              .shrink(); // Don't show anything if there are no variations
+        } else {
+          return Container(
+            height: MediaQuery.of(context).size.width /
+                2, // Height is half of the screen width
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                _buildOriginalThumbnail(),
+                ...snapshot.data!.entries.map((entry) =>
+                    _buildVariationThumbnail(entry.key, entry.value)),
+              ],
+            ),
+          );
+        }
+      },
+    );
+  }
+
+  Widget _buildOriginalThumbnail() {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedVariation = null;
+          _detailUrlFuture =
+              CachedUrlFetcher.getImageUrl(widget.wallpaper.detailFile);
+        });
+      },
+      child: Container(
+        width: MediaQuery.of(context).size.width / 2,
+        margin: EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color:
+                _selectedVariation == null ? Colors.blue : Colors.transparent,
+            width: 2,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: Image.network(
+            widget.wallpaper.thumbnailFile,
+            fit: BoxFit.cover,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildVariationThumbnail(String variationKey, String thumbnailUrl) {
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedVariation = variationKey;
+          _detailUrlFuture = CachedUrlFetcher.getImageUrl(
+            widget.wallpaper.variations![variationKey]!.detail,
+            folder: widget.wallpaper.id,
+          );
+        });
+      },
+      child: Container(
+        width: MediaQuery.of(context).size.width / 2,
+        margin: EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: _selectedVariation == variationKey
+                ? Colors.blue
+                : Colors.transparent,
+            width: 2,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(6),
+          child: Image.network(
+            thumbnailUrl,
+            fit: BoxFit.cover,
+          ),
+        ),
       ),
     );
   }
