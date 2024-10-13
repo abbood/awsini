@@ -93,11 +93,16 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
   }
 
   Future<String> _loadSvgFromUrl(String url) async {
-    final response = await http.get(Uri.parse(url));
-    if (response.statusCode == 200) {
-      return response.body;
-    } else {
-      throw Exception('Failed to load SVG');
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        return response.body;
+      } else {
+        throw Exception('Failed to load SVG: HTTP ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error loading SVG from URL: $e');
+      throw Exception('Failed to load SVG: $e');
     }
   }
 
@@ -140,9 +145,33 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
         photoStatus, storageStatus)) {
       debugPrint('All permissions granted, proceeding with download');
       try {
-        String vectorFile = _selectedVariation != null
-            ? widget.wallpaper.variations![_selectedVariation]!.vector
-            : widget.wallpaper.vectorFile;
+        String vectorFile;
+        bool isVariation = false;
+        if (_selectedVariation != null) {
+          vectorFile = widget.wallpaper.variations![_selectedVariation]!.vector;
+          isVariation = true;
+        } else {
+          vectorFile = widget.wallpaper.vectorFile;
+        }
+
+        // Ensure the vector file URL is complete
+        if (!vectorFile.startsWith('http://') &&
+            !vectorFile.startsWith('https://')) {
+          // If it's not a complete URL, use CachedUrlFetcher to get the full URL
+          if (isVariation) {
+            _vectorUrl = await CachedUrlFetcher.getImageUrl(vectorFile,
+                folder: widget.wallpaper.id);
+          } else {
+            _vectorUrl = await CachedUrlFetcher.getImageUrl(vectorFile);
+          }
+        } else {
+          _vectorUrl = vectorFile;
+        }
+
+        if (_vectorUrl == null || _vectorUrl!.isEmpty) {
+          throw Exception('Failed to get a valid vector file URL');
+        }
+
         _vectorUrl ??= await CachedUrlFetcher.getImageUrl(vectorFile);
         // Get screen size
         final Size screenSize = MediaQuery.of(context).size;
