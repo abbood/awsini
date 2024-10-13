@@ -118,6 +118,10 @@ class ArtistInfoCard extends StatelessWidget {
             icon = FontAwesomeIcons.xTwitter;
             prefix = 'https://twitter.com/';
             break;
+          case 'wikipedia':
+            icon = FontAwesomeIcons.wikipediaW;
+            prefix = 'https://en.wikipedia.org/wiki/';
+            break;
           default:
             icon = FontAwesomeIcons.link;
             prefix = 'https://';
