@@ -60,18 +60,14 @@ class _WallpaperGridState extends State<WallpaperGrid> {
       _isSearching = searchText.length >= 3;
       if (_isSearching) {
         _filteredWallpapers = widget.wallpapers.where((wallpaper) {
-          final ar = wallpaper.ar.toString().toLowerCase();
-          final translation = wallpaper.translation.toString().toLowerCase();
-          final tags = (wallpaper.tags as String?)
-                  ?.split(',')
-                  .map((tag) => tag.trim().toLowerCase())
-                  .where((tag) => tag.isNotEmpty)
-                  .toList() ??
-              [];
+          final ar = wallpaper.ar.toLowerCase();
+          final translation = wallpaper.translation.toLowerCase();
+          final tags = wallpaper.tags;
 
-          return ar.contains(searchText) ||
+          final matches = ar.contains(searchText) ||
               translation.contains(searchText) ||
-              tags.any((tag) => tag.contains(searchText));
+              tags.any((tag) => tag.toLowerCase().contains(searchText));
+          return matches;
         }).toList();
       } else {
         _filteredWallpapers = widget.wallpapers;
