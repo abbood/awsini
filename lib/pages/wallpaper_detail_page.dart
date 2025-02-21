@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'dart:ui' as ui;
 
-import 'package:awsini/helpers/permission_helper.dart';
 import 'package:awsini/models/wallpaper.dart';
 import 'package:awsini/pages/artist_page.dart';
 import 'package:awsini/services/cached_url_fetcher.dart';
@@ -23,6 +22,60 @@ class WallpaperDetailPage extends StatefulWidget {
 
   @override
   _WallpaperDetailPageState createState() => _WallpaperDetailPageState();
+}
+
+class WallpaperStorage {
+  static Future<bool> saveWallpaper(
+      ui.Image image, BuildContext context) async {
+    try {
+      // For Android 10+ (API level 29+), we only need READ_MEDIA_IMAGES
+      // For iOS, we need photos permission
+      var permissionStatus = await _checkPermissions();
+
+      if (!permissionStatus) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Permission denied to save wallpapers')),
+        );
+        return false;
+      }
+
+      // Convert image to bytes
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final bytes = byteData!.buffer.asUint8List();
+
+      // Save to gallery using image_gallery_saver
+      final result = await ImageGallerySaver.saveImage(
+        bytes,
+        quality: 100,
+        name: "wallpaper_${DateTime.now().millisecondsSinceEpoch}",
+      );
+
+      return result['isSuccess'] ?? false;
+    } catch (e) {
+      debugPrint('Error saving wallpaper: $e');
+      return false;
+    }
+  }
+
+  static Future<bool> _checkPermissions() async {
+    if (Platform.isAndroid) {
+      // For Android 13+ (API level 33+)
+      final status = await Permission.photos.status;
+      if (status.isDenied) {
+        final result = await Permission.photos.request();
+        return result.isGranted;
+      }
+      return status.isGranted;
+    } else if (Platform.isIOS) {
+      final status = await Permission.photos.status;
+      if (status.isDenied) {
+        final result = await Permission.photosAddOnly.request();
+        return result.isGranted;
+      }
+      return status.isGranted;
+    }
+    return false;
+  }
 }
 
 class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
@@ -118,154 +171,102 @@ class _WallpaperDetailPageState extends State<WallpaperDetailPage> {
     setState(() {
       _isDownloading = true;
     });
-    _getAndroidVersion();
-    // Check both permissions
-    var photoStatus = await Permission.photos.status;
-    var storageStatus = await Permission.manageExternalStorage.status;
 
-    debugPrint('Initial photo permission status: $photoStatus');
-    debugPrint('Initial storage permission status: $storageStatus');
-
-    if (photoStatus.isDenied) {
-      if (Platform.isAndroid) {
-        photoStatus = await Permission.photos.request();
-        debugPrint('Android Photo permission request result: $photoStatus');
-      } else if (Platform.isIOS) {
-        photoStatus = await Permission.photosAddOnly.request();
-        debugPrint('iOS Photo permission request result: $photoStatus');
-      }
-    }
-
-    if (Platform.isAndroid && storageStatus.isDenied) {
-      storageStatus = await Permission.manageExternalStorage.request();
-      debugPrint('Android Storage permission request result: $storageStatus');
-    }
-
-    if (PermissionHelper.areRequiredPermissionsGranted(
-        photoStatus, storageStatus)) {
-      debugPrint('All permissions granted, proceeding with download');
-      try {
-        String vectorFile;
-        bool isVariation = false;
-        if (_selectedVariation != null) {
-          vectorFile = widget.wallpaper.variations![_selectedVariation]!.vector;
-          isVariation = true;
-        } else {
-          vectorFile = widget.wallpaper.vectorFile;
-        }
-
-        // Ensure the vector file URL is complete
-        if (!vectorFile.startsWith('http://') &&
-            !vectorFile.startsWith('https://')) {
-          // If it's not a complete URL, use CachedUrlFetcher to get the full URL
-          if (isVariation) {
-            _vectorUrl = await CachedUrlFetcher.getImageUrl(vectorFile,
-                folder: widget.wallpaper.id);
-          } else {
-            _vectorUrl = await CachedUrlFetcher.getImageUrl(vectorFile);
-          }
-        } else {
-          _vectorUrl = vectorFile;
-        }
-
-        if (_vectorUrl == null || _vectorUrl!.isEmpty) {
-          throw Exception('Failed to get a valid vector file URL');
-        }
-
-        _vectorUrl ??= await CachedUrlFetcher.getImageUrl(vectorFile);
-        // Get screen size
-        final Size screenSize = MediaQuery.of(context).size;
-        final double pixelRatio = MediaQuery.of(context).devicePixelRatio;
-        final int width = (screenSize.width * pixelRatio).toInt();
-        final int height = (screenSize.height * pixelRatio).toInt();
-
-        // Create a custom paint for rendering
-        final recorder = ui.PictureRecorder();
-        final canvas = Canvas(recorder);
-
-        // Draw black background
-        final paint = Paint()..color = Colors.black;
-        canvas.drawRect(
-            Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()), paint);
-
-        // Load and draw SVG
-        final svgString = await _loadSvgFromUrl(_vectorUrl!);
-        final svgDrawableRoot = await svg.fromSvgString(svgString, _vectorUrl!);
-        final svgSize = svgDrawableRoot.viewport.size;
-        final scale =
-            (width - 200) / svgSize.width; // 10px padding on each side
-        final scaledSvgHeight = svgSize.height * scale;
-        final matrix = Matrix4.identity()
-          ..translate((width - svgSize.width * scale) / 2,
-              (height - scaledSvgHeight) / 2)
-          ..scale(scale);
-        canvas.transform(matrix.storage);
-        svgDrawableRoot.draw(
-            canvas, Rect.fromLTWH(0, 0, svgSize.width, svgSize.height));
-
-        // Add translation text if checkbox is checked
-        if (_addTranslation) {
-          final textPainter = TextPainter(
-            text: TextSpan(
-              text: widget.wallpaper.translation,
-              style: TextStyle(color: Colors.grey, fontSize: 50),
-            ),
-            textDirection: TextDirection.ltr,
-          );
-          textPainter.layout(maxWidth: width.toDouble());
-          final textY =
-              (height + scaledSvgHeight) / 2 + 20; // 20 pixels below the SVG
-          textPainter.paint(
-              canvas, Offset(((width - textPainter.width) / 2) + 30, textY));
-        }
-
-        // Convert to image
-        final picture = recorder.endRecording();
-        final img = await picture.toImage(width, height);
-        await _saveImageToGallery(img);
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Wallpaper saved in image gallery')),
-        );
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to save wallpaper: $e')),
-        );
-      } finally {
-        setState(() {
-          _isDownloading = false;
-        });
-      }
-    } else if (photoStatus.isPermanentlyDenied ||
-        storageStatus.isPermanentlyDenied) {
-      debugPrint('One or more permissions are permanently denied');
-      openAppSettings();
-    } else {
-      debugPrint('One or more permissions are denied');
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(
-                'Both photo and storage permissions are required to save wallpapers')),
-      );
-    }
-  }
-
-  Future<void> _saveImageToGallery(ui.Image img) async {
-    final pngBytes = await img.toByteData(format: ui.ImageByteFormat.png);
-    if (pngBytes != null) {
-      final result = await ImageGallerySaver.saveImage(
-        pngBytes.buffer.asUint8List(),
-        quality: 100,
-        name: 'wallpaper_${DateTime.now().millisecondsSinceEpoch}.png',
-      );
-
-      if (result['isSuccess']) {
-        print('Image saved to gallery successfully');
+    try {
+      String vectorFile;
+      bool isVariation = false;
+      if (_selectedVariation != null) {
+        vectorFile = widget.wallpaper.variations![_selectedVariation]!.vector;
+        isVariation = true;
       } else {
-        print('Failed to save image to gallery');
+        vectorFile = widget.wallpaper.vectorFile;
       }
-    } else {
-      print('Failed to convert image to PNG');
+
+      // Ensure the vector file URL is complete
+      if (!vectorFile.startsWith('http://') &&
+          !vectorFile.startsWith('https://')) {
+        // If it's not a complete URL, use CachedUrlFetcher to get the full URL
+        if (isVariation) {
+          _vectorUrl = await CachedUrlFetcher.getImageUrl(vectorFile,
+              folder: widget.wallpaper.id);
+        } else {
+          _vectorUrl = await CachedUrlFetcher.getImageUrl(vectorFile);
+        }
+      } else {
+        _vectorUrl = vectorFile;
+      }
+
+      if (_vectorUrl == null || _vectorUrl!.isEmpty) {
+        throw Exception('Failed to get a valid vector file URL');
+      }
+
+      _vectorUrl ??= await CachedUrlFetcher.getImageUrl(vectorFile);
+      // Get screen size
+      final Size screenSize = MediaQuery.of(context).size;
+      final double pixelRatio = MediaQuery.of(context).devicePixelRatio;
+      final int width = (screenSize.width * pixelRatio).toInt();
+      final int height = (screenSize.height * pixelRatio).toInt();
+
+      // Create a custom paint for rendering
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(recorder);
+
+      // Draw black background
+      final paint = Paint()..color = Colors.black;
+      canvas.drawRect(
+          Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble()), paint);
+
+      // Load and draw SVG
+      final svgString = await _loadSvgFromUrl(_vectorUrl!);
+      final svgDrawableRoot = await svg.fromSvgString(svgString, _vectorUrl!);
+      final svgSize = svgDrawableRoot.viewport.size;
+      final scale = (width - 200) / svgSize.width; // 10px padding on each side
+      final scaledSvgHeight = svgSize.height * scale;
+      final matrix = Matrix4.identity()
+        ..translate(
+            (width - svgSize.width * scale) / 2, (height - scaledSvgHeight) / 2)
+        ..scale(scale);
+      canvas.transform(matrix.storage);
+      svgDrawableRoot.draw(
+          canvas, Rect.fromLTWH(0, 0, svgSize.width, svgSize.height));
+
+      // Add translation text if checkbox is checked
+      if (_addTranslation) {
+        final textPainter = TextPainter(
+          text: TextSpan(
+            text: widget.wallpaper.translation,
+            style: TextStyle(color: Colors.grey, fontSize: 50),
+          ),
+          textDirection: TextDirection.ltr,
+        );
+        textPainter.layout(maxWidth: width.toDouble());
+        final textY =
+            (height + scaledSvgHeight) / 2 + 20; // 20 pixels below the SVG
+        textPainter.paint(
+            canvas, Offset(((width - textPainter.width) / 2) + 30, textY));
+      }
+
+      // Convert to image
+      final picture = recorder.endRecording();
+      final img = await picture.toImage(width, height);
+      // Save using the new storage class
+      final success = await WallpaperStorage.saveWallpaper(img, context);
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Wallpaper saved in image gallery')),
+        );
+      } else {
+        throw Exception('Failed to save wallpaper');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to save wallpaper: $e')),
+      );
+    } finally {
+      setState(() {
+        _isDownloading = false;
+      });
     }
   }
 
