@@ -11,8 +11,8 @@ dependencies:
     sdk: flutter
 
   path_provider: any
-  permission_handler: any
-  device_info_plus: any
+  permission_handler: ^10.0.0
+  device_info_plus: ^9.0.0
   flutter_downloader: ^1.8.0+1
   file_picker: ^5.3.1
   path: ^1.8.3

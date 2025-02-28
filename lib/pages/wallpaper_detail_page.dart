@@ -28,9 +28,8 @@ class WallpaperStorage {
   static Future<bool> saveWallpaper(
       ui.Image image, BuildContext context) async {
     try {
-      // For Android 10+ (API level 29+), we only need READ_MEDIA_IMAGES
-      // For iOS, we need photos permission
-      var permissionStatus = await _checkPermissions();
+      // Check permissions based on Android version
+      var permissionStatus = await _checkPermissions(context);
 
       if (!permissionStatus) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -57,15 +56,40 @@ class WallpaperStorage {
     }
   }
 
-  static Future<bool> _checkPermissions() async {
+  static Future<bool> _checkPermissions(BuildContext context) async {
     if (Platform.isAndroid) {
-      // For Android 13+ (API level 33+)
-      final status = await Permission.photos.status;
-      if (status.isDenied) {
-        final result = await Permission.photos.request();
-        return result.isGranted;
+      // Get Android version
+      final deviceInfo = DeviceInfoPlugin();
+      final androidInfo = await deviceInfo.androidInfo;
+      final sdkInt = androidInfo.version.sdkInt;
+
+      debugPrint('Android SDK version: $sdkInt');
+
+      if (sdkInt >= 33) {
+        // Android 13+ uses READ_MEDIA_IMAGES
+        final status = await Permission.photos.status;
+        if (status.isDenied) {
+          final result = await Permission.photos.request();
+          return result.isGranted;
+        }
+        return status.isGranted;
+      } else if (sdkInt >= 30) {
+        // Android 11-12 use READ_EXTERNAL_STORAGE
+        final status = await Permission.storage.status;
+        if (status.isDenied) {
+          final result = await Permission.storage.request();
+          return result.isGranted;
+        }
+        return status.isGranted;
+      } else {
+        // Android 10 and lower need both READ and WRITE permissions
+        final storageStatus = await Permission.storage.status;
+        if (storageStatus.isDenied) {
+          final result = await Permission.storage.request();
+          return result.isGranted;
+        }
+        return storageStatus.isGranted;
       }
-      return status.isGranted;
     } else if (Platform.isIOS) {
       final status = await Permission.photos.status;
       if (status.isDenied) {
